@@ -61,6 +61,22 @@ def processor_image2text(images, pipe, max_new_tokens):
   outputs = pipe(images, text=prompts, generate_kwargs={"max_new_tokens": max_new_tokens})
   return outputs[0]["generated_text"]
 
+def process_and_update_csv(image_list, data_csv, pipe, max_new_tokens, path_dataset_test):
+    for idx, image in enumerate(tqdm(image_list, desc="Processing images")):
+
+        if pd.notna(data_csv.loc[idx, 'Output']):
+            print(f"Dòng {idx} đã có dữ liệu, bỏ qua...")
+            continue
+        
+        try:
+ 
+            output = processor_image2text(image, pipe, max_new_tokens)
+            output = get_assistant_text(output)
+            data_csv.loc[idx, 'Output'] = output
+            data_csv.to_csv(path_dataset_test, index=False)
+        except Exception as e:
+            print(f"Error processing image {idx}: {e}")
+
 
 def data_extracting(args):
   model_id = args.model_id
@@ -80,14 +96,14 @@ def data_extracting(args):
   val_context_bbox_arr = os.path.join(path_dataset, 'val_context_bbox_arr.npy')
   test_context_bbox_arr = os.path.join(path_dataset, 'test_context_bbox_arr.npy')
 
-  # train_context_bbox_arr = np.load(train_context_bbox_arr)
-  # image_list_train = [train_context_bbox_arr[i] for i in range(train_context_bbox_arr.shape[0])]
-  # del train_context_bbox_arr
-  # image_list_train = np_list2pil_list(image_list_train)
-  # val_context_bbox_arr = np.load(val_context_bbox_arr)
-  # image_list_val = [val_context_bbox_arr[i] for i in range(val_context_bbox_arr.shape[0])]
-  # del val_context_bbox_arr
-  # image_list_val = np_list2pil_list(image_list_val)
+  train_context_bbox_arr = np.load(train_context_bbox_arr)
+  image_list_train = [train_context_bbox_arr[i] for i in range(train_context_bbox_arr.shape[0])]
+  del train_context_bbox_arr
+  image_list_train = np_list2pil_list(image_list_train)
+  val_context_bbox_arr = np.load(val_context_bbox_arr)
+  image_list_val = [val_context_bbox_arr[i] for i in range(val_context_bbox_arr.shape[0])]
+  del val_context_bbox_arr
+  image_list_val = np_list2pil_list(image_list_val)
   test_context_bbox_arr = np.load(test_context_bbox_arr)
   image_list_test = [test_context_bbox_arr[i] for i in range(test_context_bbox_arr.shape[0])]
   del test_context_bbox_arr
@@ -122,11 +138,10 @@ def data_extracting(args):
 
 
   pipe = pipeline("image-text-to-text", model=model_id, model_kwargs={"quantization_config": quantization_config})
-  for idx, image in enumerate(tqdm(image_list_test, desc="Processing images")):
-    output = processor_image2text(image, pipe, max_new_tokens)
-    output = get_assistant_text(output)
-    test_csv.loc[idx, 'Output'] = output
-    test_csv.to_csv(path_dataset_test, index=False)
+  
+  process_and_update_csv(image_list_test, test_csv, pipe, max_new_tokens, path_dataset_test)
+
+
 
 
 
