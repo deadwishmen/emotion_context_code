@@ -31,7 +31,7 @@ prompt_v2 = f"USER: <image>\\ Given the following list of emotions: {', '.join(c
 def get_arg():
   parser = ArgumentParser()
   parser.add_argument('--path_dataset', default= '/content/drive/MyDrive/DatMinhNe/Dataset/emotic_obj_full_v2', type=str)
-  parser.add_argument('--path_save', default='/content', type=str)
+  parser.add_argument('--path_save', default='/kaggle/working/', type=str)
   parser.add_argument('--model_id', default="llava-hf/llava-1.5-7b-hf", type=str, choices=["llava-hf/llava-1.5-7b-hf", "llava-hf/llava-1.5-13b-hf"])
   parser.add_argument('--bit8', action = 'store_true')
   parser.add_argument('--max_new_tokens', default=250, type=int)
@@ -61,7 +61,7 @@ def processor_image2text(images, pipe, max_new_tokens):
   outputs = pipe(images, text=prompts, generate_kwargs={"max_new_tokens": max_new_tokens})
   return outputs[0]["generated_text"]
 
-def process_and_update_csv(image_list, data_csv, pipe, max_new_tokens, path_dataset_test):
+def process_and_update_csv(image_list, data_csv, pipe, max_new_tokens, path_save):
     for idx, image in enumerate(tqdm(image_list, desc="Processing images")):
 
         if pd.notna(data_csv.loc[idx, 'Output']):
@@ -70,7 +70,7 @@ def process_and_update_csv(image_list, data_csv, pipe, max_new_tokens, path_data
         output = processor_image2text(image, pipe, max_new_tokens) 
         output = get_assistant_text(output)
         data_csv.loc[idx, 'Output'] = output
-        data_csv.to_csv(path_dataset_test, index=False)
+        data_csv.to_csv(path_save, index=False)
 
 
 
