@@ -119,8 +119,8 @@ def data_extracting(args):
 
   for dataset, name in zip([train_csv, val_csv, test_csv], ['train_csv', 'val_csv', 'test_csv']):
       if 'Output' not in dataset.columns:
-          print(f"Adding 'Output' column to {name}")
-          dataset['Output'] = ""
+          print(f"Adding 'Output' column to {name}.")
+          dataset['Output'] = pd.NA
 
   if bit8 is False:
     quantization_config = BitsAndBytesConfig(
