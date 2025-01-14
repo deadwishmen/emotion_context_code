@@ -67,15 +67,11 @@ def process_and_update_csv(image_list, data_csv, pipe, max_new_tokens, path_data
         if pd.notna(data_csv.loc[idx, 'Output']):
             print(f"Dòng {idx} đã có dữ liệu, bỏ qua...")
             continue
-        
-        try:
- 
-            output = processor_image2text(image, pipe, max_new_tokens)
-            output = get_assistant_text(output)
-            data_csv.loc[idx, 'Output'] = output
-            data_csv.to_csv(path_dataset_test, index=False)
-        except Exception as e:
-            print(f"Error processing image {idx}: {e}")
+        output = processor_image2text(image, pipe, max_new_tokens)
+        output = get_assistant_text(output)
+        data_csv.loc[idx, 'Output'] = output
+        data_csv.to_csv(path_dataset_test, index=False)
+
 
 
 def data_extracting(args):
