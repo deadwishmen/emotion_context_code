@@ -111,13 +111,16 @@ def data_extracting(args):
   
 
 
+
   train_csv = pd.read_csv(path_dataset_train)
   val_csv = pd.read_csv(path_dataset_val)
   test_csv = pd.read_csv(path_dataset_test)
 
 
-  if 'Output' not in test_csv.columns:
-    test_csv['Output'] = ""
+  for dataset, name in zip([train_csv, val_csv, test_csv], ['train_csv', 'val_csv', 'test_csv']):
+      if 'Output' not in dataset.columns:
+          print(f"Adding 'Output' column to {name}")
+          dataset['Output'] = ""
 
   if bit8 is False:
     quantization_config = BitsAndBytesConfig(
