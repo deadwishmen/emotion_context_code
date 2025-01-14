@@ -135,8 +135,8 @@ def data_extracting(args):
 
   pipe = pipeline("image-text-to-text", model=model_id, model_kwargs={"quantization_config": quantization_config})
 
-  process_and_update_csv(image_list_train, test_csv, pipe, max_new_tokens, path_save_train)
-  process_and_update_csv(image_list_val, test_csv, pipe, max_new_tokens, path_save_val)
+  process_and_update_csv(image_list_train, train_csv, pipe, max_new_tokens, path_save_train)
+  process_and_update_csv(image_list_val, val_csv, pipe, max_new_tokens, path_save_val)
   process_and_update_csv(image_list_test, test_csv, pipe, max_new_tokens, path_save_test)
 
 
