@@ -67,7 +67,7 @@ def process_and_update_csv(image_list, data_csv, pipe, max_new_tokens, path_data
         if pd.notna(data_csv.loc[idx, 'Output']):
             print(f"Dòng {idx} đã có dữ liệu, bỏ qua...")
             continue
-        output = processor_image2text(image, pipe, max_new_tokens)
+        output = processor_image2text(image, pipe, max_new_tokens) 
         output = get_assistant_text(output)
         data_csv.loc[idx, 'Output'] = output
         data_csv.to_csv(path_dataset_test, index=False)
@@ -134,8 +134,10 @@ def data_extracting(args):
 
 
   pipe = pipeline("image-text-to-text", model=model_id, model_kwargs={"quantization_config": quantization_config})
-  
-  process_and_update_csv(image_list_test, test_csv, pipe, max_new_tokens, path_dataset_test)
+
+  process_and_update_csv(image_list_train, test_csv, pipe, max_new_tokens, path_save_train)
+  process_and_update_csv(image_list_val, test_csv, pipe, max_new_tokens, path_save_val)
+  process_and_update_csv(image_list_test, test_csv, pipe, max_new_tokens, path_save_test)
 
 
 
