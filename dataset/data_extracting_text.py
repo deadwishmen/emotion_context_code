@@ -1,3 +1,12 @@
+from google.colab import auth
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+
+auth.authenticate_user()
+
+drive_service = build('drive', 'v3')
+
+
 import torch
 import os
 import random
@@ -10,9 +19,7 @@ from torch.nn.modules import activation
 from transformers import BitsAndBytesConfig
 from transformers import pipeline
 from argparse import ArgumentParser
-from google.colab import auth
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
+
 
 
 
@@ -31,9 +38,7 @@ prompts = "USER: <image>\ Given the following list of emotions: suffering, pain,
 prompt_v2 = f"USER: <image>\\ Given the following list of emotions: {', '.join(cat)} explain in detail which emotions are more suitable for describing how the person in the red box feels based on the image context\nASSISTANT:"
 
 
-auth.authenticate_user()
 
-drive_service = build('drive', 'v3')
 
 def get_arg():
   parser = ArgumentParser()
