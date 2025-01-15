@@ -70,14 +70,30 @@ def processor_image2text(images, pipe, max_new_tokens):
   return outputs[0]["generated_text"]
 
 
+def find_file_id(file_name, folder_id):
+    query = f"'{folder_id}' in parents and name = '{file_name}'"
+    results = drive_service.files().list(q=query, fields="files(id)").execute()
+    files = results.get('files', [])
+    
+    if files:
+        return files[0]['id']  
+    else:
+        return None  
+
 def upload_to_drive(file_path, folder_id):
     file_name = os.path.basename(file_path)
+    
+    existing_file_id = find_file_id(file_name, folder_id)
+
+    if existing_file_id:
+        drive_service.files().delete(fileId=existing_file_id).execute()
+    
     file_metadata = {
-        'name': file_name,  
-        'parents': [folder_id]  
+        'name': file_name,
+        'parents': [folder_id] 
     }
-    media = MediaFileUpload(file_path, mimetype='text/csv')  
-    file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+    media = MediaFileUpload(file_path, mimetype='text/csv')
+    drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
 
 
 
