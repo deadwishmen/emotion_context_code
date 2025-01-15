@@ -1,12 +1,3 @@
-from google.colab import auth
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-
-auth.authenticate_user()
-
-drive_service = build('drive', 'v3')
-
-
 import torch
 import os
 import random
@@ -19,8 +10,12 @@ from torch.nn.modules import activation
 from transformers import BitsAndBytesConfig
 from transformers import pipeline
 from argparse import ArgumentParser
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 
 
+
+drive_service = build('drive', 'v3')
 
 
 row = [ 'Index', 'Folder', 'Filename',
