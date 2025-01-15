@@ -10,6 +10,9 @@ from torch.nn.modules import activation
 from transformers import BitsAndBytesConfig
 from transformers import pipeline
 from argparse import ArgumentParser
+from google.colab import auth
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 
 
 
@@ -28,6 +31,10 @@ prompts = "USER: <image>\ Given the following list of emotions: suffering, pain,
 prompt_v2 = f"USER: <image>\\ Given the following list of emotions: {', '.join(cat)} explain in detail which emotions are more suitable for describing how the person in the red box feels based on the image context\nASSISTANT:"
 
 
+auth.authenticate_user()
+
+drive_service = build('drive', 'v3')
+
 def get_arg():
   parser = ArgumentParser()
   parser.add_argument('--path_dataset', default= '/content/drive/MyDrive/DatMinhNe/Dataset/emotic_obj_full_v2', type=str)
@@ -35,6 +42,7 @@ def get_arg():
   parser.add_argument('--model_id', default="llava-hf/llava-1.5-7b-hf", type=str, choices=["llava-hf/llava-1.5-7b-hf", "llava-hf/llava-1.5-13b-hf"])
   parser.add_argument('--bit8', action = 'store_true')
   parser.add_argument('--max_new_tokens', default=250, type=int)
+  parser.add_argument('--folder_id', default='', type=str)
 
   args = parser.parse_args()
   return args
@@ -61,16 +69,30 @@ def processor_image2text(images, pipe, max_new_tokens):
   outputs = pipe(images, text=prompts, generate_kwargs={"max_new_tokens": max_new_tokens})
   return outputs[0]["generated_text"]
 
-def process_and_update_csv(image_list, data_csv, pipe, max_new_tokens, path_save):
+
+def upload_to_drive(file_path, folder_id):
+    file_name = os.path.basename(file_path)
+    file_metadata = {
+        'name': file_name,  
+        'parents': [folder_id]  
+    }
+    media = MediaFileUpload(file_path, mimetype='text/csv')  
+    file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+
+
+
+
+def process_and_update_csv(image_list, data_csv, pipe, max_new_tokens, path_save, folder_id):
     for idx, image in enumerate(tqdm(image_list, desc="Processing images")):
 
         if pd.notna(data_csv.loc[idx, 'Output']):
-            print(f"Dòng {idx} đã có dữ liệu, bỏ qua...")
             continue
         output = processor_image2text(image, pipe, max_new_tokens) 
         output = get_assistant_text(output)
         data_csv.loc[idx, 'Output'] = output
         data_csv.to_csv(path_save, index=False)
+
+        upload_to_drive(path_save, folder_id)
 
 
 
@@ -80,6 +102,7 @@ def data_extracting(args):
   max_new_tokens = args.max_new_tokens
   path_dataset = args.path_dataset
   path_save = args.path_save
+  folder_id = args.folder_id
   path_dataset_train = os.path.join(path_dataset, 'train.csv')
   path_dataset_val = os.path.join(path_dataset, 'val.csv')
   path_dataset_test = os.path.join(path_dataset, 'test.csv')
@@ -138,9 +161,9 @@ def data_extracting(args):
 
   pipe = pipeline("image-text-to-text", model=model_id, model_kwargs={"quantization_config": quantization_config})
 
-  process_and_update_csv(image_list_train, train_csv, pipe, max_new_tokens, path_save_train)
-  process_and_update_csv(image_list_val, val_csv, pipe, max_new_tokens, path_save_val)
-  process_and_update_csv(image_list_test, test_csv, pipe, max_new_tokens, path_save_test)
+  process_and_update_csv(image_list_train, train_csv, pipe, max_new_tokens, path_save_train, folder_id)
+  process_and_update_csv(image_list_val, val_csv, pipe, max_new_tokens, path_save_val, folder_id)
+  process_and_update_csv(image_list_test, test_csv, pipe, max_new_tokens, path_save_test, folder_id)
 
 
 
