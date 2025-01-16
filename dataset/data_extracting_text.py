@@ -38,6 +38,7 @@ prompt_v2 = f"USER: <image>\\ Given the following list of emotions: {', '.join(c
 def get_arg():
   parser = ArgumentParser()
   parser.add_argument('--path_dataset', default= '/content/drive/MyDrive/DatMinhNe/Dataset/emotic_obj_full_v2', type=str)
+  parser.add_argument('--path_csv', default='/kaggle/working', type=str)
   parser.add_argument('--path_save', default='/kaggle/working/', type=str)
   parser.add_argument('--model_id', default="llava-hf/llava-1.5-7b-hf", type=str, choices=["llava-hf/llava-1.5-7b-hf", "llava-hf/llava-1.5-13b-hf"])
   parser.add_argument('--bit8', action = 'store_true')
@@ -119,9 +120,13 @@ def data_extracting(args):
   path_dataset = args.path_dataset
   path_save = args.path_save
   folder_id = args.folder_id
-  path_dataset_train = os.path.join(path_dataset, 'train.csv')
-  path_dataset_val = os.path.join(path_dataset, 'val.csv')
-  path_dataset_test = os.path.join(path_dataset, 'test.csv')
+  path_csv = args.path_csv
+
+
+
+  path_dataset_train = os.path.join(path_csv, 'train.csv')
+  path_dataset_val = os.path.join(path_csv, 'val.csv')
+  path_dataset_test = os.path.join(path_csv, 'test.csv')
 
   path_save_train = os.path.join(path_save, 'train.csv')
   path_save_val = os.path.join(path_save, 'val.csv')
