@@ -44,7 +44,7 @@ def get_arg():
   parser.add_argument('--bit8', action = 'store_true')
   parser.add_argument('--max_new_tokens', default=250, type=int)
   parser.add_argument('--folder_id', default='', type=str)
-  parser.add_argument('--etracting_type', default='train', choices=['train', 'val', 'test'])
+  parser.add_argument('--etracting_type', default='train', choices=['train', 'val', 'test'], type=str)
 
   args = parser.parse_args()
   return args
