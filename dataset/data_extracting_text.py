@@ -44,6 +44,7 @@ def get_arg():
   parser.add_argument('--bit8', action = 'store_true')
   parser.add_argument('--max_new_tokens', default=250, type=int)
   parser.add_argument('--folder_id', default='', type=str)
+  parser.add_argument('--etracting_type', default='train', choices=['train', 'val', 'test'])
 
   args = parser.parse_args()
   return args
@@ -182,9 +183,12 @@ def data_extracting(args):
 
   pipe = pipeline("image-text-to-text", model=model_id, model_kwargs={"quantization_config": quantization_config})
 
-  process_and_update_csv(image_list_train, train_csv, pipe, max_new_tokens, path_save_train, folder_id)
-  process_and_update_csv(image_list_val, val_csv, pipe, max_new_tokens, path_save_val, folder_id)
-  process_and_update_csv(image_list_test, test_csv, pipe, max_new_tokens, path_save_test, folder_id)
+  if args.etracting_type.lower() == 'train':
+    process_and_update_csv(image_list_train, train_csv, pipe, max_new_tokens, path_save_train, folder_id)
+  elif args.etracting_type.lower() == 'val':
+    process_and_update_csv(image_list_val, val_csv, pipe, max_new_tokens, path_save_val, folder_id)
+  elif args.etracting_type.lower() == 'test':
+    process_and_update_csv(image_list_test, test_csv, pipe, max_new_tokens, path_save_test, folder_id)
 
 
 
