@@ -151,9 +151,9 @@ def data_extracting(args):
 
 
 
-  train_csv = pd.read_csv(path_dataset_train)
-  val_csv = pd.read_csv(path_dataset_val)
-  test_csv = pd.read_csv(path_dataset_test)
+  
+  
+  
 
 
   for dataset, name in zip([train_csv, val_csv, test_csv], ['train_csv', 'val_csv', 'test_csv']):
@@ -185,14 +185,17 @@ def data_extracting(args):
   
 
   if args.etracting_type.lower() == 'train':
+    train_csv = pd.read_csv(path_dataset_train)
     path_dataset_train = os.path.join(path_csv, 'train.csv')
     path_save_train = os.path.join(path_save, 'train.csv')
     process_and_update_csv(image_list_train, train_csv, pipe, max_new_tokens, path_save_train, folder_id)
   elif args.etracting_type.lower() == 'val':
+    val_csv = pd.read_csv(path_dataset_val)
     path_dataset_val = os.path.join(path_csv, 'val.csv')
     path_save_val = os.path.join(path_save, 'val.csv')
     process_and_update_csv(image_list_val, val_csv, pipe, max_new_tokens, path_save_val, folder_id)
   elif args.etracting_type.lower() == 'test':
+    test_csv = pd.read_csv(path_dataset_test)
     path_dataset_test = os.path.join(path_csv, 'test.csv')
     path_save_test = os.path.join(path_save, 'test.csv')
     process_and_update_csv(image_list_test, test_csv, pipe, max_new_tokens, path_save_test, folder_id)
