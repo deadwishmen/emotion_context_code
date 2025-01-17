@@ -125,13 +125,7 @@ def data_extracting(args):
 
 
 
-  path_dataset_train = os.path.join(path_csv, 'train.csv')
-  path_dataset_val = os.path.join(path_csv, 'val.csv')
-  path_dataset_test = os.path.join(path_csv, 'test.csv')
 
-  path_save_train = os.path.join(path_save, 'train.csv')
-  path_save_val = os.path.join(path_save, 'val.csv')
-  path_save_test = os.path.join(path_save, 'test.csv')
 
   train_context_bbox_arr = os.path.join(path_dataset, 'train_context_bbox_arr.npy')
   val_context_bbox_arr = os.path.join(path_dataset, 'val_context_bbox_arr.npy')
@@ -183,11 +177,24 @@ def data_extracting(args):
 
   pipe = pipeline("image-text-to-text", model=model_id, model_kwargs={"quantization_config": quantization_config})
 
+  
+  
+  
+  
+  
+  
+
   if args.etracting_type.lower() == 'train':
+    path_dataset_train = os.path.join(path_csv, 'train.csv')
+    path_save_train = os.path.join(path_save, 'train.csv')
     process_and_update_csv(image_list_train, train_csv, pipe, max_new_tokens, path_save_train, folder_id)
   elif args.etracting_type.lower() == 'val':
+    path_dataset_val = os.path.join(path_csv, 'val.csv')
+    path_save_val = os.path.join(path_save, 'val.csv')
     process_and_update_csv(image_list_val, val_csv, pipe, max_new_tokens, path_save_val, folder_id)
   elif args.etracting_type.lower() == 'test':
+    path_dataset_test = os.path.join(path_csv, 'test.csv')
+    path_save_test = os.path.join(path_save, 'test.csv')
     process_and_update_csv(image_list_test, test_csv, pipe, max_new_tokens, path_save_test, folder_id)
 
 
