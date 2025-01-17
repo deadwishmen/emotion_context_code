@@ -112,7 +112,12 @@ def process_and_update_csv(image_list, data_csv, pipe, max_new_tokens, path_save
 
         upload_to_drive(path_save, folder_id)
 
-
+def check_csv(dataset, name):
+    if 'Output' not in dataset.columns:
+        print(f"Adding 'Output' column to {name}.")
+        dataset['Output'] = pd.NA
+        return dataset
+    return
 
 def data_extracting(args):
   model_id = args.model_id
@@ -152,14 +157,7 @@ def data_extracting(args):
 
 
   
-  
-  
 
-
-  for dataset, name in zip([train_csv, val_csv, test_csv], ['train_csv', 'val_csv', 'test_csv']):
-      if 'Output' not in dataset.columns:
-          print(f"Adding 'Output' column to {name}.")
-          dataset['Output'] = pd.NA
 
   if bit8 is False:
     quantization_config = BitsAndBytesConfig(
@@ -185,18 +183,21 @@ def data_extracting(args):
   
 
   if args.etracting_type.lower() == 'train':
-    train_csv = pd.read_csv(path_dataset_train)
     path_dataset_train = os.path.join(path_csv, 'train.csv')
+    train_csv = pd.read_csv(path_dataset_train)
+    train_csv = check_csv(train_csv, 'train_csv')
     path_save_train = os.path.join(path_save, 'train.csv')
     process_and_update_csv(image_list_train, train_csv, pipe, max_new_tokens, path_save_train, folder_id)
   elif args.etracting_type.lower() == 'val':
-    val_csv = pd.read_csv(path_dataset_val)
     path_dataset_val = os.path.join(path_csv, 'val.csv')
+    val_csv = pd.read_csv(path_dataset_val)
+    val_csv = check_csv(val_csv, 'val_csv')
     path_save_val = os.path.join(path_save, 'val.csv')
     process_and_update_csv(image_list_val, val_csv, pipe, max_new_tokens, path_save_val, folder_id)
   elif args.etracting_type.lower() == 'test':
-    test_csv = pd.read_csv(path_dataset_test)
     path_dataset_test = os.path.join(path_csv, 'test.csv')
+    test_csv = pd.read_csv(path_dataset_test)
+    test_csv = check_csv(test_csv, 'test_csv')
     path_save_test = os.path.join(path_save, 'test.csv')
     process_and_update_csv(image_list_test, test_csv, pipe, max_new_tokens, path_save_test, folder_id)
 
