@@ -102,23 +102,21 @@ def upload_to_drive(file_path, folder_id):
 
 def process_and_update_csv(image_list, data_csv, pipe, max_new_tokens, path_save, folder_id):
     for idx, image in enumerate(tqdm(image_list, desc="Processing images")):
+      print()
+      if pd.notna(data_csv.loc[idx, 'Output']):
+        continue
+      output = processor_image2text(image, pipe, max_new_tokens) 
+      output = get_assistant_text(output)
+      data_csv.loc[idx, 'Output'] = output
+      data_csv.to_csv(path_save, index=False)
 
-        if pd.notna(data_csv.loc[idx, 'Output']):
-            continue
-        output = processor_image2text(image, pipe, max_new_tokens) 
-        output = get_assistant_text(output)
-        data_csv.loc[idx, 'Output'] = output
-        data_csv.to_csv(path_save, index=False)
-
-        upload_to_drive(path_save, folder_id)
+      upload_to_drive(path_save, folder_id)
 
 def check_csv(dataset, name):
     if 'Output' not in dataset.columns:
         print(f"Adding 'Output' column to {name}.")
         dataset['Output'] = pd.NA
-        return dataset
-    return
-
+    return dataset
 def data_extracting(args):
   model_id = args.model_id
   bit8 = args.bit8
