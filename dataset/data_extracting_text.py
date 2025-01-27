@@ -37,14 +37,14 @@ prompt_v2 = f"USER: <image>\\ Given the following list of emotions: {', '.join(c
 
 def get_arg():
   parser = ArgumentParser()
-  parser.add_argument('--path_dataset', default= '/content/drive/MyDrive/DatMinhNe/Dataset/emotic_obj_full_v2', type=str)
-  parser.add_argument('--path_csv', default='/kaggle/working', type=str)
-  parser.add_argument('--path_save', default='/kaggle/working/', type=str)
-  parser.add_argument('--model_id', default="llava-hf/llava-1.5-7b-hf", type=str, choices=["llava-hf/llava-1.5-7b-hf", "llava-hf/llava-1.5-13b-hf"])
-  parser.add_argument('--bit8', action = 'store_true')
-  parser.add_argument('--max_new_tokens', default=250, type=int)
-  parser.add_argument('--folder_id', default='', type=str)
-  parser.add_argument('--etracting_type', default='train', choices=['train', 'val', 'test'], type=str)
+  parser.add_argument('--path_dataset', default= '/content/drive/MyDrive/DatMinhNe/Dataset/emotic_obj_full_v2', type=str, help='Path to dataset folder')
+  parser.add_argument('--path_csv', default='/kaggle/working', type=str, help='Path to csv folder')
+  parser.add_argument('--path_save', default='/kaggle/working/', type=str, help='Path to save csv file')
+  parser.add_argument('--model_id', default="llava-hf/llava-1.5-7b-hf", type=str, choices=["llava-hf/llava-1.5-7b-hf", "llava-hf/llava-1.5-13b-hf"], help='Model id from huggingface model hub')
+  parser.add_argument('--bit8', action = 'store_true', help='Use 8 bit quantization or not')
+  parser.add_argument('--max_new_tokens', default=250, type=int, help='Max new tokens for generation')
+  parser.add_argument('--folder_id', default='', type=str, help='Folder id to save csv file')
+  parser.add_argument('--etracting_type', default='train', choices=['train', 'val', 'test'], type=str, help='Extracting type')
 
   args = parser.parse_args()
   return args
