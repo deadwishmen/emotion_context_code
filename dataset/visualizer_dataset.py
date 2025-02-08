@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 
 def get_arg():
     parser = ArgumentParser()
-    parser.add_argument('--path_npy', default='', type=str, help='Path to dataset file images npy')
+    parser.add_argument('--path_folder_npy', default='', type=str, help='Path to dataset folder images')
     parser.add_argument('--path_csv', default='', type=str, help='Path to csv file')
 
     return parser.parse_args()
@@ -34,11 +34,9 @@ def main(args):
 
     data_csv = pd.read_csv(path_csv)
     images = np.load(path_images)
-    display_images(images, data_csv['Output'].values)
     print(data_csv.head())
-
+    display_images(images, data_csv['Output'].values)
     
-    # display_images(images, labels)
 
 if __name__ == '__main__':
     arges = get_arg()
