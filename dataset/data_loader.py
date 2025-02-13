@@ -3,6 +3,7 @@ import os
 from torch.utils.data import DataLoader, Dataset
 import torchvision.transforms as transforms
 import torch
+from tokenizer_dataset import tokenizer_dataset
 
 # Function to set normalization and transformations
 def set_normalization_and_transforms(isSwinT=False):
@@ -120,6 +121,14 @@ def load_data(data_src, batch_size, train_transform, test_transform, face_train_
     train_face = np.stack((np.load(os.path.join(data_src,'train_face_arr.npy')),) * 3, axis=-1)
     val_face = np.stack((np.load(os.path.join(data_src,'val_face_arr.npy')),) * 3, axis=-1)
     test_face = np.stack((np.load(os.path.join(data_src,'test_face_arr.npy')),) * 3, axis=-1)
+
+    # Load text data
+
+    train_text = tokenizer_dataset(os.path.join(data_src, 'train.csv'))
+    val_text = tokenizer_dataset(os.path.join(data_src, 'val.csv'))
+    test_text = tokenizer_dataset(os.path.join(data_src, 'test.csv'))
+
+    
 
     # Categorical emotion classes
     cat = ['Affection', 'Anger', 'Annoyance', 'Anticipation', 'Aversion', 'Confidence', 'Disapproval', 'Disconnection',

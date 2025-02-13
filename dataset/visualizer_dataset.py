@@ -46,4 +46,3 @@ def main(args):
 if __name__ == '__main__':
     arges = get_arg()
     main(arges)
-    
