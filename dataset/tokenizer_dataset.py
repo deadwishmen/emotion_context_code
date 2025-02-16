@@ -9,7 +9,7 @@ def tokenizer_text(path_dataset):
     sentences = df['Output'].tolist()
 
     tokens = tokenizer(sentences, padding=True, truncation=True, return_tensors='pt')
-
+    print(tokens)
     return tokens
 
 
