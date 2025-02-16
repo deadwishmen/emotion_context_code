@@ -1,5 +1,5 @@
 import pandas as pd
-from trasformers import DistilBertTokenizerFast
+from transformers import DistilBertTokenizerFast
 
 
 def tokenizer_text(path_dataset):
@@ -11,6 +11,3 @@ def tokenizer_text(path_dataset):
     tokens = tokenizer(sentences, padding=True, truncation=True, return_tensors='pt')
     print(tokens)
     return tokens
-
-
-

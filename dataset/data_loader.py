@@ -3,7 +3,7 @@ import os
 from torch.utils.data import DataLoader, Dataset
 import torchvision.transforms as transforms
 import torch
-from tokenizer_dataset import tokenizer_dataset
+from dataset import tokenizer_dataset
 
 # Function to set normalization and transformations
 def set_normalization_and_transforms(isSwinT=False):
@@ -124,9 +124,9 @@ def load_data(data_src, batch_size, train_transform, test_transform, face_train_
 
     # Load text data
 
-    train_text = tokenizer_dataset(os.path.join(data_src, 'train.csv'))
-    val_text = tokenizer_dataset(os.path.join(data_src, 'val.csv'))
-    test_text = tokenizer_dataset(os.path.join(data_src, 'test.csv'))
+    train_text = tokenizer_dataset.tokenizer_dataset(os.path.join(data_src, 'train.csv'))
+    val_text = tokenizer_dataset.tokenizer_dataset(os.path.join(data_src, 'val.csv'))
+    test_text = tokenizer_dataset.tokenizer_dataset(os.path.join(data_src, 'test.csv'))
 
 
     # Categorical emotion classes
