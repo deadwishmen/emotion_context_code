@@ -83,7 +83,7 @@ def train(pars):
   model_face = cnn_face(pretrained = True)
   model_body = swin_v2_t(pretrained = True)
   model_text = DistilBertModel.from_pretrained('distilbert-base-uncased')
-  print(summary(model_text, (233), device="cpu"))
+  print(model_text)
 
   num_context_features = list(model_context.children())[-1].in_features
   num_body_features = list(model_body.children())[-1].in_features
