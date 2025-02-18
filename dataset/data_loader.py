@@ -124,11 +124,10 @@ def load_data(data_src, batch_size, train_transform, test_transform, face_train_
 
     # Load text data
 
-    train_text = tokenizer_dataset.tokenizer_dataset(os.path.join(data_src, 'train.csv'))
-    val_text = tokenizer_dataset.tokenizer_dataset(os.path.join(data_src, 'val.csv'))
-    test_text = tokenizer_dataset.tokenizer_dataset(os.path.join(data_src, 'test.csv'))
-
-
+    train_text = tokenizer_dataset.tokenizer_text(os.path.join(data_src, 'train.csv'))
+    val_text = tokenizer_dataset.tokenizer_text(os.path.join(data_src, 'val.csv'))
+    test_text = tokenizer_dataset.tokenizer_text(os.path.join(data_src, 'test.csv'))
+    print(test_text["input_ids"].shape)
     # Categorical emotion classes
     cat = ['Affection', 'Anger', 'Annoyance', 'Anticipation', 'Aversion', 'Confidence', 'Disapproval', 'Disconnection',
            'Disquietment', 'Doubt/Confusion', 'Embarrassment', 'Engagement', 'Esteem', 'Excitement', 'Fatigue', 'Fear',
