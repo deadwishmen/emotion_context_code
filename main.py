@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
 from argparse import ArgumentParser, ArgumentTypeError
 from torchsummary import summary
+from transformers import AutoTokenizer, DistilBertModel
 from model.resnet import resnet50V2, resnet50_place365
 from model.cnn_face import cnn_face
 from model.swin_transformer import swin_v2_t
@@ -81,6 +82,7 @@ def train(pars):
   print(summary(model_context, (3,224,224), device="cpu"))
   model_face = cnn_face(pretrained = True)
   model_body = swin_v2_t(pretrained = True)
+  model_text = DistilBertModel.from_pretrained('distilbert-base-uncased')
 
 
 
@@ -102,13 +104,16 @@ def train(pars):
     param.requires_grad = False
   for param in model_face.parameters():
     param.requires_grad = False
+  for param in model_text.parameters():
+    param.requires_grad = False
 
 
 
 
 
   opt = optim.AdamW((list(fusion_model.parameters()) + list(model_context.parameters()) + \
-                  list(model_body.parameters()) + list(model_face.parameters())), lr=pars.learning_rate, weight_decay=pars.weight_decay)
+                  list(model_body.parameters()) + list(model_face.parameters()) + list(model_text.parameters())), 
+                  lr=pars.learning_rate, weight_decay=pars.weight_decay)
 
   scheduler = StepLR(opt, step_size=7, gamma=gamma)
   if loss_function == "L2":
@@ -120,7 +125,7 @@ def train(pars):
   train_loss, val_loss, train_mae, val_mae = train_disc(epochs, 
             model_path, 
             opt, scheduler, 
-            [model_context, model_body, model_face, fusion_model], 
+            [model_context, model_body, model_face, model_text, fusion_model], 
             disc_loss, 
             cat_loss_param=1.0, 
             cont_loss_param=0.0, 

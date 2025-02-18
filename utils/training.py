@@ -36,7 +36,7 @@ def train_disc(epochs,
 
 
 
-  model_context, model_body, model_face, fusion_model = models
+  model_context, model_body, model_face, model_text, fusion_model = models
 
 
 
@@ -46,10 +46,12 @@ def train_disc(epochs,
     model_context.to(device)
     model_body.to(device)
     model_face.to(device)
+    model_text.to(device)
     fusion_model.train()
     model_context.train()
     model_body.train()
     model_face.train()
+    model_text.train()
 
     train_cat_preds = np.zeros((train_length, 26))
     train_cat_labels = np.zeros((train_length, 26))
@@ -57,11 +59,12 @@ def train_disc(epochs,
 
 
 
-    for images_context, images_body, images_face, labels_cat, labels_cont in tqdm(train_loader, desc="Training Progress", leave=True):
+    for images_context, images_body, images_face, tokenizer_text, labels_cat, labels_cont in tqdm(train_loader, desc="Training Progress", leave=True):
 
       images_context = images_context.to(device)
       images_body = images_body.to(device)
       images_face = images_face.to(device)
+      tokenizer_text = tokenizer_text.to(device)
       images_face = torch.mean(images_face, dim=1, keepdim=True).to(device)
 
       labels_cat = labels_cat.to(device)
@@ -71,10 +74,10 @@ def train_disc(epochs,
       pred_context = model_context(images_context)
       pred_body = model_body(images_body)
       pred_face = model_face(images_face)
+      pred_text = model_text(tokenizer_text).last_hidden_state
 
 
-
-      pred_cat = fusion_model(pred_context, pred_body, pred_face)
+      pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
       cat_loss_batch = disc_loss(pred_cat, labels_cat)
       loss = (cat_loss_param * cat_loss_batch)
       running_loss += loss.item()
@@ -124,10 +127,11 @@ def train_disc(epochs,
         pred_context = model_context(images_context)
         pred_body = model_body(images_body)
         pred_face = model_face(images_face)
+        pred_text = model_text(tokenizer_text).last_hidden_state
 
 
 
-        pred_cat = fusion_model(pred_context, pred_body, pred_face)
+        pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
         cat_loss_batch = disc_loss(pred_cat, labels_cat)
         loss =  (cat_loss_param * cat_loss_batch)
         running_loss += loss.item()
@@ -161,6 +165,7 @@ def train_disc(epochs,
         model_context.to("cpu")
         model_body.to("cpu")
         model_face.to("cpu")
+        model_text.to("cpu")
 
 
 
@@ -169,6 +174,7 @@ def train_disc(epochs,
         torch.save(model_context, os.path.join(model_path, 'model_context.pth'))
         torch.save(model_body, os.path.join(model_path, 'model_body.pth'))
         torch.save(model_face, os.path.join(model_path, 'model_face.pth'))
+        torch.save(model_text, os.path.join(model_path, 'model_text.pth'))
 
   print('completed training')
   return train_loss, val_loss, train_mae, val_mae
