@@ -4,7 +4,7 @@ import torch
 import torch.optim as optim
 import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentTypeError
 from torchsummary import summary
 from model.resnet import resnet50V2, resnet50_place365
 from model.cnn_face import cnn_face
@@ -22,6 +22,15 @@ channels = 3
 height = 224
 width = 224
 
+def str2bool(v):
+  if isinstance(v, bool):
+    return v
+  if v.lower() in ('yes', 'true', 't', 'y', '1'):
+    return True
+  elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+    return False
+  else:
+    raise ArgumentTypeError('Boolean value expected.')
 
 def get_arg():
   parser = ArgumentParser()
@@ -29,7 +38,7 @@ def get_arg():
   parser.add_argument('--batch_size', default=26, type=int)
   parser.add_argument('--epochs', default=25, type=int)
   parser.add_argument('--loss', default='L2', type=str)
-  parser.add_argument('--model', default='swin', type=str)
+  parser.add_argument('--swin_model', default=False, type=str2bool)
   parser.add_argument('--path_dataset', default='/content/drive/MyDrive/DatMinhNe/Dataset/emotic_obj_full', type=str)
   parser.add_argument('--learning_rate', default=0.001, type=float)
   parser.add_argument('--weight_decay', default=5e-4, type=float)
@@ -44,14 +53,10 @@ def train(pars):
   batch_size = args.batch_size
   data_src = args.path_dataset
   gamma = args.gamma
-  
   conbine = args.conbine
   epochs = args.epochs
   model_path = args.save_model
-  isSwinT = False
-
-  if args.model.lower() == 'swin':
-    isSwinT = True
+  isSwinT = args.swin_model
 
   context_norm, body_norm, face_norm, train_transform, test_transform, face_train_transform, face_test_transform = set_normalization_and_transforms(isSwinT)
 
