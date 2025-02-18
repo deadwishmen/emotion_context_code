@@ -11,7 +11,7 @@ from model.cnn_face import cnn_face
 from model.swin_transformer import swin_v2_t
 from model.fusion import FusionModel
 from dataset.data_loader import load_data, set_normalization_and_transforms
-from utils.losses import DiscreteLoss, CrossEtropyLoss
+from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLossWeighted
 from utils.metrics import test_scikit_ap, test_emotic_vad, get_thresholds
 from utils.training import train_disc
 from utils.testing import test_disc
@@ -37,7 +37,7 @@ def get_arg():
   parser.add_argument('--save_model', default='./save_model', type=str)
   parser.add_argument('--batch_size', default=26, type=int)
   parser.add_argument('--epochs', default=25, type=int)
-  parser.add_argument('--loss', default='L2', type=str)
+  parser.add_argument('--loss', default='L2', type=str, choices=['L2', 'BCE', 'CrossEntropy', 'Huber'])
   parser.add_argument('--swin_model', default=False, type=str2bool)
   parser.add_argument('--path_dataset', default='/content/drive/MyDrive/DatMinhNe/Dataset/emotic_obj_full', type=str)
   parser.add_argument('--learning_rate', default=0.001, type=float)
@@ -57,6 +57,7 @@ def train(pars):
   epochs = args.epochs
   model_path = args.save_model
   isSwinT = args.swin_model
+  loss_function = args.loss
 
   context_norm, body_norm, face_norm, train_transform, test_transform, face_train_transform, face_test_transform = set_normalization_and_transforms(isSwinT)
 
@@ -79,9 +80,8 @@ def train(pars):
   model_context = resnet50_place365(pretrained = True)
   print(summary(model_context, (3,224,224), device="cpu"))
   model_face = cnn_face(pretrained = True)
-  # print(summary(model_face, (1, 48,48), device="cpu"))
   model_body = swin_v2_t(pretrained = True)
-  # print (summary(model_body, (3,128,128), device="cpu"))
+
 
 
   num_context_features = list(model_context.children())[-1].in_features
@@ -111,7 +111,10 @@ def train(pars):
                   list(model_body.parameters()) + list(model_face.parameters())), lr=pars.learning_rate, weight_decay=pars.weight_decay)
 
   scheduler = StepLR(opt, step_size=7, gamma=gamma)
-  disc_loss = DiscreteLoss('dynamic', device)
+  if loss_function == "L2":
+    disc_loss = DiscreteLoss('dynamic', device)
+  elif loss_function == "BCE":
+    disc_loss = BCEWithLogitsLossWeighted('dynamic', device)
 
 
   train_loss, val_loss, train_mae, val_mae = train_disc(epochs, 
