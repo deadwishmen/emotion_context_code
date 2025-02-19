@@ -64,7 +64,7 @@ def train_disc(epochs,
       images_context = images_context.to(device)
       images_body = images_body.to(device)
       images_face = images_face.to(device)
-      tokenizer_text = tokenizer_text.to(device)
+      tokenizer_text = {key: val.to(device) for key, val in tokenizer_text.items()}
       images_face = torch.mean(images_face, dim=1, keepdim=True).to(device)
 
       labels_cat = labels_cat.to(device)
@@ -116,12 +116,13 @@ def train_disc(epochs,
     indx = 0
 
     with torch.no_grad():
-      for images_context, images_body, images_face, labels_cat, labels_cont in iter(val_loader):
+      for images_context, images_body, images_face, tokenizer_text, labels_cat, labels_cont in iter(val_loader):
 
         images_context = images_context.to(device)
         images_body = images_body.to(device)
         images_face = images_face.to(device)
         images_face = torch.mean(images_face, dim=1, keepdim=True).to(device)
+        tokenizer_text = {key: val.to(device) for key, val in tokenizer_text.items()}
         labels_cat = labels_cat.to(device)
 
         pred_context = model_context(images_context)
