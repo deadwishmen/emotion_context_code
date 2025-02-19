@@ -48,7 +48,7 @@ def train_disc(epochs,
     model_face.to(device)
     model_text.to(device)
 
-    
+
     fusion_model.train()
     model_context.train()
     model_body.train()
@@ -137,7 +137,7 @@ def train_disc(epochs,
         pred_context = model_context(images_context)
         pred_body = model_body(images_body)
         pred_face = model_face(images_face)
-        pred_text = model_text(tokenizer_text).last_hidden_state[:, 0, :]
+        pred_text = model_text(**tokenizer_text).last_hidden_state[:, 0, :]
 
 
 
