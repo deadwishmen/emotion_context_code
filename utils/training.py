@@ -47,6 +47,8 @@ def train_disc(epochs,
     model_body.to(device)
     model_face.to(device)
     model_text.to(device)
+
+    
     fusion_model.train()
     model_context.train()
     model_body.train()
@@ -67,6 +69,11 @@ def train_disc(epochs,
       tokenizer_text = {key: val.to(device) for key, val in tokenizer_text.items()}
       images_face = torch.mean(images_face, dim=1, keepdim=True).to(device)
 
+      # print(type(tokenizer_text))  # Phải là <class 'dict'>
+      # print(tokenizer_text.keys())  # Phải có ['input_ids', 'attention_mask']
+      # print(type(tokenizer_text["input_ids"]))  # Phải là <class 'torch.Tensor'>
+      # print(tokenizer_text["input_ids"].shape)  # Phải là (batch_size, sequence_length)
+
       labels_cat = labels_cat.to(device)
 
       opt.zero_grad()
@@ -74,7 +81,9 @@ def train_disc(epochs,
       pred_context = model_context(images_context)
       pred_body = model_body(images_body)
       pred_face = model_face(images_face)
-      pred_text = model_text(tokenizer_text).last_hidden_state
+      pred_text = model_text(**tokenizer_text).last_hidden_state[:, 0, :]
+
+
 
 
       pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
@@ -128,7 +137,7 @@ def train_disc(epochs,
         pred_context = model_context(images_context)
         pred_body = model_body(images_body)
         pred_face = model_face(images_face)
-        pred_text = model_text(tokenizer_text).last_hidden_state
+        pred_text = model_text(tokenizer_text).last_hidden_state[:, 0, :]
 
 
 
