@@ -156,7 +156,7 @@ def train(pars):
 
 
 
-  test_map = test_disc([model_context, model_body, model_face, fusion_model], device, test_loader, test_length)
+  test_map = test_disc([model_context, model_body, model_face, model_text, fusion_model], device, test_loader, test_length)
   print ('testing mAP=%.4f' %(test_map))
 
 if __name__=='__main__':
