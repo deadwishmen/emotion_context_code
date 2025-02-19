@@ -10,7 +10,7 @@ from transformers import AutoTokenizer, DistilBertModel
 from model.resnet import resnet50V2, resnet50_place365
 from model.cnn_face import cnn_face
 from model.swin_transformer import swin_v2_t
-from model.fusion import FusionModel
+from model.fusion import FusionModel, FusionConcatModel
 from dataset.data_loader import load_data, set_normalization_and_transforms
 from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLossWeighted
 from utils.metrics import test_scikit_ap, test_emotic_vad, get_thresholds
@@ -63,7 +63,7 @@ def train(pars):
   context_norm, body_norm, face_norm, train_transform, test_transform, face_train_transform, face_test_transform = set_normalization_and_transforms(isSwinT)
 
   train_loader, val_loader, test_loader, cat2ind, ind2cat, train_length, val_length, test_length = load_data(
-      data_src, 
+      data_src,
       batch_size,
       train_transform,
       test_transform,
@@ -95,7 +95,8 @@ def train(pars):
   print(num_body_features)
   print(num_face_features)
 
-  fusion_model = FusionModel(num_context_features, num_body_features, num_face_features, conbine, isSwinT)
+  #fusion_model = FusionModel(num_context_features, num_body_features, num_face_features, conbine, isSwinT)
+  fusion_model = FusionConcatModel(num_context_features, num_body_features, num_face_features, num_text_features, isSwinT)
 
   for param in fusion_model.parameters():
     param.requires_grad = True
@@ -106,7 +107,7 @@ def train(pars):
   for param in model_face.parameters():
     param.requires_grad = False
   for param in model_text.parameters():
-    param.requires_grad = False
+    param.requires_grad = False 
 
 
 
@@ -121,6 +122,8 @@ def train(pars):
     disc_loss = DiscreteLoss('dynamic', device)
   elif loss_function == "BCE":
     disc_loss = BCEWithLogitsLossWeighted('dynamic', device)
+  elif loss_function == "CrossEntropy":
+    disc_loss = CrossEtropyLoss('dynamic', device)
 
 
   train_loss, val_loss, train_mae, val_mae = train_disc(epochs, 

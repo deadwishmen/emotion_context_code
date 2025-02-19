@@ -94,9 +94,11 @@ class Emotic_PreDataset(Dataset):
         image_context = self.x_context[index]
         image_body = self.x_body[index]
         image_face = self.x_face[index]
-        token_text = self.x_text[index]
         cat_label = self.y_cat[index]
         cont_label = self.y_cont[index]
+
+        token_text = {key:val[index] for key, val in self.x_text.items()}
+
         return self.context_norm(self.context_transform(image_context)), self.body_norm(self.body_transform(image_body)), self.face_norm(self.face_transform(image_face)), token_text, torch.tensor(cat_label, dtype=torch.float32), torch.tensor(cont_label, dtype=torch.float32)/10.0
 
 # Load data function
