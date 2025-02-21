@@ -12,16 +12,12 @@ from model.cnn_face import cnn_face
 from model.swin_transformer import swin_v2_t
 from model.fusion import FusionModel, FusionConcatModel
 from dataset.data_loader import load_data, set_normalization_and_transforms
-from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLossWeighted
+from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss
 from utils.metrics import test_scikit_ap, test_emotic_vad, get_thresholds
 from utils.training import train_disc
 from utils.testing import test_disc
 
-# Tạo batch dữ liệu ngẫu nhiên với kích thước (batch_size, channels, height, width)
-batch_size = 4
-channels = 3
-height = 224
-width = 224
+
 
 def str2bool(v):
   if isinstance(v, bool):
@@ -121,7 +117,7 @@ def train(pars):
   if loss_function == "L2":
     disc_loss = DiscreteLoss('dynamic', device)
   elif loss_function == "BCE":
-    disc_loss = BCEWithLogitsLossWeighted('dynamic', device)
+    disc_loss = BCEWithLogitsLoss('dynamic', device)
   elif loss_function == "CrossEntropy":
     disc_loss = CrossEtropyLoss('dynamic', device)
 

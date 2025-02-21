@@ -33,9 +33,9 @@ class DiscreteLoss(nn.Module):
     return weights
 
 
-class BCEWithLogitsLossWeighted(nn.Module):
+class BCEWithLogitsLoss(nn.Module):
     def __init__(self, weight_type='mean', device=torch.device('cpu')):
-        super(BCEWithLogitsLossWeighted, self).__init__()
+        super(BCEWithLogitsLoss, self).__init__()
         self.weight_type = weight_type
         self.device = device
         
