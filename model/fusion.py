@@ -211,10 +211,9 @@ class FusionFullCrossAttentionModel(nn.Module):
         # Áp dụng Cross-Attention giữa tất cả
         batch_size = all_features.size(0)
         fused_features = []
-        for i in range(4):  # Mỗi đặc trưng làm source 1 lần
+        for i in range(4):
             source = all_features[:, i, :]  # (batch_size, 256)
-            target = all_features.view(batch_size, -1)  # (batch_size, 4*256)
-            target = self.cross_attention.query(target).view(batch_size, 4, 256).mean(dim=1)  # Giảm chiều target
+            target = all_features.mean(dim=1)  # (batch_size, 256) - trung bình tất cả đặc trưng làm target
             out = self.cross_attention(source, target)
             fused_features.append(out)
         
