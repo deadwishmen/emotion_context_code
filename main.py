@@ -72,7 +72,7 @@ def train(pars):
 
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-  inputs = torch.randn(batch_size, channels, height, width)
+
 
   model_context = resnet50_place365(pretrained = True)
   print(summary(model_context, (3,224,224), device="cpu"))
