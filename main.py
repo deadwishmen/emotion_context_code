@@ -10,7 +10,7 @@ from transformers import AutoTokenizer, DistilBertModel
 from model.resnet import resnet50V2, resnet50_place365
 from model.cnn_face import cnn_face
 from model.swin_transformer import swin_v2_t
-from model.fusion import FusionModel, FusionConcatModel
+from model.fusion import FusionModel, FusionConcatModel, FusionFullCrossAttentionModel
 from dataset.data_loader import load_data, set_normalization_and_transforms
 from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss
 from utils.metrics import test_scikit_ap, test_emotic_vad, get_thresholds
@@ -92,7 +92,8 @@ def train(pars):
   print(num_face_features)
 
   #fusion_model = FusionModel(num_context_features, num_body_features, num_face_features, conbine, isSwinT)
-  fusion_model = FusionConcatModel(num_context_features, num_body_features, num_face_features, num_text_features, isSwinT)
+  #fusion_model = FusionConcatModel(num_context_features, num_body_features, num_face_features, num_text_features, isSwinT)
+  fusion_model = FusionFullCrossAttentionModel(num_context_features, num_body_features, num_face_features, num_text_features)
 
   for param in fusion_model.parameters():
     param.requires_grad = True

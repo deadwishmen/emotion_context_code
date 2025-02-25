@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from model.transformer import CrossAttention
 
 
 
@@ -179,4 +180,49 @@ class FusionConcatModel(nn.Module):
 
         return cat_out
 
+#######################Cross Attention Model######################
 
+class FusionFullCrossAttentionModel(nn.Module):
+    def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features):
+        super(FusionFullCrossAttentionModel, self).__init__()
+        self.fc_context = nn.Linear(num_context_features, 256)
+        self.fc_body = nn.Linear(num_body_features, 256)
+        self.fc_face = nn.Linear(num_face_features, 256)
+        self.fc_text = nn.Linear(num_text_features, 256)
+
+        # Cross-Attention cho tất cả đặc trưng
+        self.cross_attention = CrossAttention(feature_dim=256)
+
+        self.fc1 = nn.Linear(256 * 4, 256)  # Tổng hợp 4 đặc trưng
+        self.fc2 = nn.Linear(256, 26)
+        self.bn1 = nn.BatchNorm1d(256)
+        self.d1 = nn.Dropout(p=0.5)
+        self.relu = nn.ReLU()
+
+    def forward(self, x_context, x_body, x_face, x_text):
+        context_features = self.fc_context(x_context.view(-1, x_context.size(-1)))
+        body_features = self.fc_body(x_body.view(-1, x_body.size(-1)))
+        face_features = self.fc_face(x_face.view(-1, x_face.size(-1)))
+        text_features = self.fc_text(x_text.view(-1, x_text.size(-1)))
+
+        # Gộp tất cả đặc trưng thành một tensor
+        all_features = torch.stack([context_features, body_features, face_features, text_features], dim=1)  # (batch_size, 4, 256)
+
+        # Áp dụng Cross-Attention giữa tất cả
+        batch_size = all_features.size(0)
+        fused_features = []
+        for i in range(4):  # Mỗi đặc trưng làm source 1 lần
+            source = all_features[:, i, :]  # (batch_size, 256)
+            target = all_features.view(batch_size, -1)  # (batch_size, 4*256)
+            target = self.cross_attention.query(target).view(batch_size, 4, 256).mean(dim=1)  # Giảm chiều target
+            out = self.cross_attention(source, target)
+            fused_features.append(out)
+        
+        # Tổng hợp
+        fuse_features = torch.cat(fused_features, dim=1)  # (batch_size, 256*4)
+        fuse_out = self.fc1(fuse_features)
+        fuse_out = self.bn1(fuse_out)
+        fuse_out = self.relu(fuse_out)
+        fuse_out = self.d1(fuse_out)
+        cat_out = self.fc2(fuse_out)
+        return cat_out
