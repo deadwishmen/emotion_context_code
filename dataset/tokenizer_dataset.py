@@ -1,9 +1,9 @@
 import pandas as pd
-from transformers import DistilBertTokenizerFast
+from transformers import DistilBertTokenizerFast, BertTokenizerFast
 
 
 def tokenizer_text(path_dataset):
-    tokenizer = DistilBertTokenizerFast.from_pretrained('bert-base-uncased')
+    tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
     df = pd.read_csv(path_dataset)
 
     sentences = df['Output'].tolist()

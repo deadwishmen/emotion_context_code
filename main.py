@@ -6,14 +6,13 @@ import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
 from argparse import ArgumentParser, ArgumentTypeError
 from torchsummary import summary
-from transformers import AutoTokenizer, DistilBertModel
+from transformers import DistilBertModel, BERTModel
 from model.resnet import resnet50V2, resnet50_place365
 from model.cnn_face import cnn_face
 from model.swin_transformer import swin_v2_t
 from model.fusion import FusionModel, FusionConcatModel, FusionFullCrossAttentionModel
 from dataset.data_loader import load_data, set_normalization_and_transforms
 from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss
-from utils.metrics import test_scikit_ap, test_emotic_vad, get_thresholds
 from utils.training import train_disc
 from utils.testing import test_disc
 
@@ -42,6 +41,7 @@ def get_arg():
   parser.add_argument('--step_size', default=7, type=int)
   parser.add_argument('--gamma', default=0.1, type=float)
   parser.add_argument('--conbine', default='concat', type=str)
+  parser.add_argument('--model_text', default='distilbert', choices = ['distilbert', 'bert'], type=str)
   pars = parser.parse_args()
   return pars
 
@@ -55,6 +55,7 @@ def train(pars):
   model_path = args.save_model
   isSwinT = args.swin_model
   loss_function = args.loss
+  model_text = args.model_text
 
   context_norm, body_norm, face_norm, train_transform, test_transform, face_train_transform, face_test_transform = set_normalization_and_transforms(isSwinT)
 
@@ -78,7 +79,10 @@ def train(pars):
   print(summary(model_context, (3,224,224), device="cpu"))
   model_face = cnn_face(pretrained = True)
   model_body = swin_v2_t(pretrained = True)
-  model_text = DistilBertModel.from_pretrained('distilbert-base-uncased')
+  if model_text == "distilbert":
+    model_text = DistilBertModel.from_pretrained('distilbert-base-uncased')
+  elif model_text == "bert":
+    model_text = BERTModel.from_pretrained('bert-base-uncased')
   print(model_text)
 
   num_context_features = list(model_context.children())[-1].in_features
@@ -104,7 +108,7 @@ def train(pars):
   for param in model_face.parameters():
     param.requires_grad = False
   for param in model_text.parameters():
-    param.requires_grad = False 
+    param.requires_grad = False
 
 
 
