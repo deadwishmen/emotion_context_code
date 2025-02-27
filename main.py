@@ -82,7 +82,7 @@ def train(pars):
   if model_text == "distilbert":
     model_text = DistilBertModel.from_pretrained('distilbert-base-uncased')
   elif model_text == "bert":
-    model_text = BERTModel.from_pretrained('bert-base-uncased')
+    model_text = BertModel.from_pretrained('bert-base-uncased')
   print(model_text)
 
   num_context_features = list(model_context.children())[-1].in_features
