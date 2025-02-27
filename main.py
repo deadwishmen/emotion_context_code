@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
 from argparse import ArgumentParser, ArgumentTypeError
 from torchsummary import summary
-from transformers import DistilBertModel, BERTModel
+from transformers import DistilBertModel, BertModel
 from model.resnet import resnet50V2, resnet50_place365
 from model.cnn_face import cnn_face
 from model.swin_transformer import swin_v2_t
