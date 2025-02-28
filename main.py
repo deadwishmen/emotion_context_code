@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
 from argparse import ArgumentParser, ArgumentTypeError
 from torchsummary import summary
-from transformers import DistilBertModel, BertModel
+from transformers import AutoModel
 from model.resnet import resnet50V2, resnet50_place365
 from model.cnn_face import cnn_face
 from model.swin_transformer import swin_v2_t
@@ -41,7 +41,7 @@ def get_arg():
   parser.add_argument('--step_size', default=7, type=int)
   parser.add_argument('--gamma', default=0.1, type=float)
   parser.add_argument('--conbine', default='concat', type=str)
-  parser.add_argument('--model_text', default='distilbert', choices = ['distilbert', 'bert'], type=str)
+  parser.add_argument('--model_text', default='distilbert', choices = ['distilbert', 'bert', 'roberta'], type=str)
   pars = parser.parse_args()
   return pars
 
@@ -68,7 +68,8 @@ def train(pars):
       face_test_transform,
       context_norm,
       body_norm,
-      face_norm
+      face_norm,
+      model_text
   )
 
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -80,9 +81,11 @@ def train(pars):
   model_face = cnn_face(pretrained = True)
   model_body = swin_v2_t(pretrained = True)
   if model_text == "distilbert":
-    model_text = DistilBertModel.from_pretrained('distilbert-base-uncased')
+    model_text = AutoModel.from_pretrained('distilbert-base-uncased')
   elif model_text == "bert":
-    model_text = BertModel.from_pretrained('bert-base-uncased')
+    model_text = AutoModel.from_pretrained('bert-base-uncased')
+  elif model_text == "roberta":
+    model_text = AutoModel.from_pretrained('roberta-base')
   print(model_text)
 
   num_context_features = list(model_context.children())[-1].in_features
@@ -95,9 +98,11 @@ def train(pars):
   print(num_body_features)
   print(num_face_features)
 
+  if conbine == "concat":
+    fusion_model = FusionConcatModel(num_context_features, num_body_features, num_face_features, num_text_features, isSwinT)  
   #fusion_model = FusionModel(num_context_features, num_body_features, num_face_features, conbine, isSwinT)
   #fusion_model = FusionConcatModel(num_context_features, num_body_features, num_face_features, num_text_features, isSwinT)
-  fusion_model = FusionFullCrossAttentionModel(num_context_features, num_body_features, num_face_features, num_text_features)
+  # fusion_model = FusionFullCrossAttentionModel(num_context_features, num_body_features, num_face_features, num_text_features)
 
   for param in fusion_model.parameters():
     param.requires_grad = True

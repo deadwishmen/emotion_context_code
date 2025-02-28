@@ -104,7 +104,7 @@ class Emotic_PreDataset(Dataset):
 # Load data function
 def load_data(data_src, batch_size, 
               train_transform, test_transform, face_train_transform, face_test_transform, 
-              context_norm, body_norm, face_norm):
+              context_norm, body_norm, face_norm, model_text):
     # Load train data
     train_context = np.load(os.path.join(data_src, 'train_context_arr.npy'))
     train_body = np.load(os.path.join(data_src,'train_body_arr.npy'))
@@ -130,9 +130,9 @@ def load_data(data_src, batch_size,
 
     # Load text data
 
-    train_text = tokenizer_dataset.tokenizer_text(os.path.join(data_src, 'train.csv'))
-    val_text = tokenizer_dataset.tokenizer_text(os.path.join(data_src, 'val.csv'))
-    test_text = tokenizer_dataset.tokenizer_text(os.path.join(data_src, 'test.csv'))
+    train_text = tokenizer_dataset.tokenizer_text(os.path.join(data_src, 'train.csv'), model_text)
+    val_text = tokenizer_dataset.tokenizer_text(os.path.join(data_src, 'val.csv'), model_text)
+    test_text = tokenizer_dataset.tokenizer_text(os.path.join(data_src, 'test.csv'), model_text)
 
     # Categorical emotion classes
     cat = ['Affection', 'Anger', 'Annoyance', 'Anticipation', 'Aversion', 'Confidence', 'Disapproval', 'Disconnection',
