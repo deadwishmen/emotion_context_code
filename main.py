@@ -88,7 +88,7 @@ def train(pars):
   num_context_features = list(model_context.children())[-1].in_features
   num_body_features = list(model_body.children())[-1].in_features
   num_face_features = list(model_face.children())[-3].in_features
-  num_text_features = model_text.config.dim
+  num_text_features = model_text.config.hidden_size
   
   print(num_text_features)
   print(num_context_features)
