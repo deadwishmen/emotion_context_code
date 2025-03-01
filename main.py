@@ -41,7 +41,7 @@ def get_arg():
   parser.add_argument('--step_size', default=7, type=int)
   parser.add_argument('--gamma', default=0.1, type=float)
   parser.add_argument('--conbine', default='concat', type=str)
-  parser.add_argument('--model_text', default='distilbert', choices = ['distilbert', 'bert', 'roberta'], type=str)
+  parser.add_argument('--model_text', default='distilbert', choices = ['distilbert', 'bert', 'roberta', 'deberta'], type=str)
   pars = parser.parse_args()
   return pars
 
@@ -86,6 +86,8 @@ def train(pars):
     model_text = AutoModel.from_pretrained('bert-base-uncased')
   elif model_text == "roberta":
     model_text = AutoModel.from_pretrained('roberta-base')
+  elif model_text == "deberta":
+    model_text = AutoModel.from_pretrained('microsoft/deberta-v2-xlarge')
   print(model_text)
 
   num_context_features = list(model_context.children())[-1].in_features
