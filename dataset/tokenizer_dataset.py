@@ -9,7 +9,7 @@ def tokenizer_text(path_dataset, model_text):
         tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
     elif model_text == "roberta":
         tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base')
-    elif model_text == "derberta":
+    elif model_text == "deberta":
         tokenizer = DebertaV2TokenizerFast.from_pretrained('microsoft/deberta-v2-xlarge')
 
     df = pd.read_csv(path_dataset)
