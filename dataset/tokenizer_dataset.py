@@ -1,5 +1,5 @@
 import pandas as pd
-from transformers import DistilBertTokenizerFast, BertTokenizerFast, RobertaTokenizerFast, DebertaV2Tokenizer
+from transformers import DistilBertTokenizerFast, BertTokenizerFast, RobertaTokenizerFast, DebertaV2TokenizerFast
 
 
 def tokenizer_text(path_dataset, model_text):
@@ -10,7 +10,7 @@ def tokenizer_text(path_dataset, model_text):
     elif model_text == "roberta":
         tokenizer = RobertaTokenizerFast.from_pretrained('roberta-base')
     elif model_text == "derberta":
-        tokenizer = DebertaV2Tokenizer.from_pretrained('microsoft/deberta-v2-xlarge')
+        tokenizer = DebertaV2TokenizerFast.from_pretrained('microsoft/deberta-v2-xlarge')
 
     df = pd.read_csv(path_dataset)
 
