@@ -100,6 +100,8 @@ def train(pars):
     model_text = AutoModel.from_pretrained('microsoft/deberta-v2-xlarge')
   print(model_text)
 
+  print(summary(model_body, (3,224,224), device="cpu"))
+
   num_context_features = list(model_context.children())[-1].in_features
   num_body_features = list(model_body.children())[-1].in_features
   num_face_features = list(model_face.children())[-3].in_features
