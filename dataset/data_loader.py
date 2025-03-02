@@ -6,7 +6,7 @@ import torch
 from dataset import tokenizer_dataset
 
 # Function to set normalization and transformations
-def set_normalization_and_transforms(isSwinT=False):
+def set_normalization_and_transforms(model_name):
     # Normalization values
     context_mean = [0.4690646, 0.4407227, 0.40508908]
     context_std = [0.2514227, 0.24312855, 0.24266963]
@@ -14,9 +14,10 @@ def set_normalization_and_transforms(isSwinT=False):
     body_mean = [0.43832874, 0.3964344, 0.3706214]
     body_std = [0.24784276, 0.23621225, 0.2323653]
 
-    if isSwinT:
+    if model_name in ['swin-t', 'swin-s', 'swin-b', 'swin-l', 'vit']:
         body_mean = [0.485, 0.456, 0.406]
         body_std = [0.229, 0.224, 0.225]
+
 
     face_mean = [0.507395516207, 0.507395516207, 0.507395516207]
     face_std = [0.255128989415, 0.255128989415, 0.255128989415]
@@ -50,7 +51,7 @@ def set_normalization_and_transforms(isSwinT=False):
         transforms.ToTensor()
     ])
 
-    if isSwinT:
+    if model_name in ['swin-t', 'swin-s', 'swin-b', 'swin-l', 'vit']:
         train_transform = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize(size=[232], interpolation=transforms.InterpolationMode.BICUBIC),

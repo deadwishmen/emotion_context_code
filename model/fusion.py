@@ -138,7 +138,7 @@ class FusionModel(nn.Module):
         return cat_out
 
 class FusionConcatModel(nn.Module):
-    def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features, conbine = 'concat', isSwinT = True):
+    def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features):
         super(FusionConcatModel, self).__init__()
         self.num_context_features = num_context_features
         self.num_body_features = num_body_features

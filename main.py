@@ -9,7 +9,7 @@ from torchsummary import summary
 from transformers import AutoModel
 from model.resnet import resnet50V2, resnet50_place365
 from model.cnn_face import cnn_face
-from model.swin_transformer import swin_v2_t
+from model.swin_transformer import swin_v2_t, swin_v2_s, swin_v2_b, swin_v2_l, vit_b_16
 from model.fusion import FusionModel, FusionConcatModel, FusionFullCrossAttentionModel
 from dataset.data_loader import load_data, set_normalization_and_transforms
 from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss
@@ -34,7 +34,7 @@ def get_arg():
   parser.add_argument('--batch_size', default=26, type=int)
   parser.add_argument('--epochs', default=25, type=int)
   parser.add_argument('--loss', default='L2', type=str, choices=['L2', 'BCE', 'CrossEntropy', 'Huber'])
-  parser.add_argument('--swin_model', default=False, type=str2bool)
+  parser.add_argument('--model_body', default='swin-t', type=str, choices=['swin-t', 'swin-s', 'swin-b', 'swin-l', 'resnet', 'vit'])
   parser.add_argument('--path_dataset', default='/content/drive/MyDrive/DatMinhNe/Dataset/emotic_obj_full', type=str)
   parser.add_argument('--learning_rate', default=0.001, type=float)
   parser.add_argument('--weight_decay', default=5e-4, type=float)
@@ -52,12 +52,12 @@ def train(pars):
   gamma = args.gamma
   conbine = args.conbine
   epochs = args.epochs
+  choices_model_body = args.model_body
   model_path = args.save_model
-  isSwinT = args.swin_model
   loss_function = args.loss
   model_text = args.model_text
 
-  context_norm, body_norm, face_norm, train_transform, test_transform, face_train_transform, face_test_transform = set_normalization_and_transforms(isSwinT)
+  context_norm, body_norm, face_norm, train_transform, test_transform, face_train_transform, face_test_transform = set_normalization_and_transforms(choices_model_body)
 
   train_loader, val_loader, test_loader, cat2ind, ind2cat, train_length, val_length, test_length = load_data(
       data_src,
@@ -74,12 +74,22 @@ def train(pars):
 
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-
+  model_dict = {
+    "swin-t": swin_v2_t,
+    "swin-s": swin_v2_s,
+    "swin-b": swin_v2_b,
+    "swin-l": swin_v2_l,
+    "vit": vit_b_16
+  }
 
   model_context = resnet50_place365(pretrained = True)
   print(summary(model_context, (3,224,224), device="cpu"))
   model_face = cnn_face(pretrained = True)
-  model_body = swin_v2_t(pretrained = True)
+  
+  model_body = model_dict.get(choices_model_body, None)
+  if model_body:
+      model_body = model_body(pretrained=True)
+  
   if model_text == "distilbert":
     model_text = AutoModel.from_pretrained('distilbert-base-uncased')
   elif model_text == "bert":
@@ -101,7 +111,7 @@ def train(pars):
   print(num_face_features)
 
   if conbine == "concat":
-    fusion_model = FusionConcatModel(num_context_features, num_body_features, num_face_features, num_text_features, isSwinT)  
+    fusion_model = FusionConcatModel(num_context_features, num_body_features, num_face_features, num_text_features)  
   #fusion_model = FusionModel(num_context_features, num_body_features, num_face_features, conbine, isSwinT)
   #fusion_model = FusionConcatModel(num_context_features, num_body_features, num_face_features, num_text_features, isSwinT)
   # fusion_model = FusionFullCrossAttentionModel(num_context_features, num_body_features, num_face_features, num_text_features)
