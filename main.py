@@ -9,7 +9,8 @@ from torchsummary import summary
 from transformers import AutoModel
 from model.resnet import resnet50V2, resnet50_place365
 from model.cnn_face import cnn_face
-from model.swin_transformer import swin_v2_t, swin_v2_s, swin_v2_b, swin_v2_l, vit_b_16
+from model.swin_transformer import swin_v2_t, swin_v2_s, swin_v2_b
+from model.vit import vit_b_16
 from model.fusion import FusionModel, FusionConcatModel, FusionFullCrossAttentionModel
 from dataset.data_loader import load_data, set_normalization_and_transforms
 from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss
@@ -78,7 +79,6 @@ def train(pars):
     "swin-t": swin_v2_t,
     "swin-s": swin_v2_s,
     "swin-b": swin_v2_b,
-    "swin-l": swin_v2_l,
     "vit": vit_b_16
   }
 

@@ -15,6 +15,8 @@ from typing import Type, Any, Callable, Union, List, Optional
 
 model_urls = {
     'swin_v2_t': 'https://download.pytorch.org/models/swin_v2_t-b137f0e2.pth',
+    'swin_v2_s': 'https://download.pytorch.org/models/swin_v2_s-637d8ceb.pth',
+    'swin_v2_b': 'https://download.pytorch.org/models/swin_v2_b-781e5279.pth',
 }
 
 def stochastic_depth(input: Tensor, p: float, mode: str, training: bool = True) -> Tensor:
@@ -785,6 +787,38 @@ def swin_v2_t(pretrained: bool = False, progress: bool = True, **kwargs: Any) ->
         num_heads=[3, 6, 12, 24],
         window_size=[8, 8],
         stochastic_depth_prob=0.2,
+        progress=progress,
+        block=SwinTransformerBlockV2,
+        downsample_layer=PatchMergingV2,
+        **kwargs,
+    )
+
+def swin_v2_s(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> SwinTransformer:
+    return _swin_transformer(
+        'swin_v2_s',
+        pretrained,
+        patch_size=[4, 4],
+        embed_dim=96,
+        depths=[2, 2, 18, 2],
+        num_heads=[3, 6, 12, 24],
+        window_size=[8, 8],
+        stochastic_depth_prob=0.3,
+        progress=progress,
+        block=SwinTransformerBlockV2,
+        downsample_layer=PatchMergingV2,
+        **kwargs,
+    )
+
+def swin_v2_b(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> SwinTransformer:
+    return _swin_transformer(
+        'swin_v2_b',
+        pretrained,
+        patch_size=[4, 4],
+        embed_dim=128,
+        depths=[2, 2, 18, 2],
+        num_heads=[4, 8, 16, 32],
+        window_size=[8, 8],
+        stochastic_depth_prob=0.5,
         progress=progress,
         block=SwinTransformerBlockV2,
         downsample_layer=PatchMergingV2,
