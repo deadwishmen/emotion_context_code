@@ -100,10 +100,21 @@ def train(pars):
     model_text = AutoModel.from_pretrained('microsoft/deberta-v2-xlarge')
   print(model_text)
 
-  print(summary(model_body, (3,224,224), device="cpu"))
-
+  print(model_body)
   num_context_features = list(model_context.children())[-1].in_features
-  num_body_features = list(model_body.children())[-1].in_features
+  
+  last_layer = list(model_body.children())[-1]  # Lấy lớp cuối cùng
+
+  # Nếu lớp cuối cùng là Sequential, lấy lớp con cuối cùng trong nó
+  if isinstance(last_layer, torch.nn.Sequential):
+      last_layer = list(last_layer.children())[-1]
+
+  # Kiểm tra nếu nó là Linear thì mới lấy in_features
+  if hasattr(last_layer, 'in_features'):
+      num_body_features = last_layer.in_features
+  else:
+      raise ValueError("The last layer has no in_features. Need to recheck the model.")
+  # num_body_features = list(model_body.children())[-1].in_features
   num_face_features = list(model_face.children())[-3].in_features
   num_text_features = model_text.config.hidden_size
   
