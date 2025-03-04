@@ -104,7 +104,7 @@ def train(pars):
   print(model_body)
   num_context_features = list(model_context.children())[-1].in_features
   
-  last_layer = list(model_body.children())[-1]  # Lấy lớp cuối cùng
+  last_layer = list(model_body.children())[-2]  # Lấy lớp cuối cùng
 
   # Nếu lớp cuối cùng là Sequential, lấy lớp con cuối cùng trong nó
   if isinstance(last_layer, torch.nn.Sequential):
@@ -115,6 +115,8 @@ def train(pars):
       num_body_features = last_layer.in_features
   else:
       raise ValueError("The last layer has no in_features. Need to recheck the model.")
+  if choices_model_body == "vit":
+    model_body.heads = torch.nn.Identity()
   # num_body_features = list(model_body.children())[-1].in_features
   num_face_features = list(model_face.children())[-3].in_features
   num_text_features = model_text.config.hidden_size
