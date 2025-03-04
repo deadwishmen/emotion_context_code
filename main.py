@@ -3,7 +3,6 @@ from math import gamma
 import torch.nn as nn
 import torch
 import torch.optim as optim
-from torchvision.models import vit_b_16 
 import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
 from argparse import ArgumentParser, ArgumentTypeError
@@ -12,7 +11,7 @@ from transformers import AutoModel
 from model.resnet import resnet50V2, resnet50_place365
 from model.cnn_face import cnn_face
 from model.swin_transformer import swin_v2_t, swin_v2_s, swin_v2_b
-# from model.vit import vit_b_16
+from model.vit import vit_b_16
 from model.fusion import FusionModel, FusionConcatModel, FusionFullCrossAttentionModel
 from dataset.data_loader import load_data, set_normalization_and_transforms
 from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss
@@ -103,7 +102,7 @@ def train(pars):
   print(model_text)
 
   print(model_body)
-  num_context_features = list(model_context.children())[-3].in_features
+  num_context_features = list(model_context.children())[-1].in_features
   
   last_layer = list(model_body.children())[-2]  # Lấy lớp cuối cùng
 
@@ -116,8 +115,7 @@ def train(pars):
       num_body_features = last_layer.in_features
   else:
       raise ValueError("The last layer has no in_features. Need to recheck the model.")
-  if choices_model_body == "vit":
-    model_body.heads.head = nn.Identity()
+
   # num_body_features = list(model_body.children())[-1].in_features
   num_face_features = list(model_face.children())[-3].in_features
   num_text_features = model_text.config.hidden_size
