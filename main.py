@@ -103,7 +103,7 @@ def train(pars):
   print(model_text)
 
   print(model_body)
-  num_context_features = list(model_context.children())[-1].in_features
+  num_context_features = list(model_context.children())[-2].in_features
   
   last_layer = list(model_body.children())[-2]  # Lấy lớp cuối cùng
 
