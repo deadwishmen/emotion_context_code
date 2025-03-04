@@ -1,5 +1,6 @@
 from abc import update_abstractmethods
 from math import gamma
+import torch.nn as nn
 import torch
 import torch.optim as optim
 from torchvision.models import vit_b_16 
@@ -116,7 +117,7 @@ def train(pars):
   else:
       raise ValueError("The last layer has no in_features. Need to recheck the model.")
   if choices_model_body == "vit":
-    model_body.heads = torch.nn.Identity()
+    model_body.heads.head = nn.Identity()
   # num_body_features = list(model_body.children())[-1].in_features
   num_face_features = list(model_face.children())[-3].in_features
   num_text_features = model_text.config.hidden_size
