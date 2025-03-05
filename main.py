@@ -104,7 +104,7 @@ def train(pars):
   print(model_body)
   num_context_features = list(model_context.children())[-1].in_features
   
-  last_layer = list(model_body.children())[-2]  # Lấy lớp cuối cùng
+  last_layer = list(model_body.children())[-1]  # Lấy lớp cuối cùng
 
   # Nếu lớp cuối cùng là Sequential, lấy lớp con cuối cùng trong nó
   if isinstance(last_layer, torch.nn.Sequential):
