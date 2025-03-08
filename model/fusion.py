@@ -225,3 +225,62 @@ class FusionFullCrossAttentionModel(nn.Module):
         fuse_out = self.d1(fuse_out)
         cat_out = self.fc2(fuse_out)
         return cat_out
+
+
+##############Attention Model####################
+
+
+
+class FusionAttentionModel(nn.Module):
+    def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features):
+        super(FusionAttentionModel, self).__init__()
+        self.fc_context = nn.Linear(num_context_features, 256)
+        self.fc_body = nn.Linear(num_body_features, 256)
+        self.fc_face = nn.Linear(num_face_features, 256)
+        self.fc_text = nn.Linear(num_text_features, 256)
+
+        self.fc1 = nn.Linear(256 * 4, 256)
+        self.fc2 = nn.Linear(256, 26)
+        self.bn1 = nn.BatchNorm1d(256)
+        self.d1 = nn.Dropout(p=0.5)
+        self.relu = nn.ReLU()
+        self.attention_layer = nn.MultiheadAttention(256, 64)
+
+    def self_attention(self, features):
+        for i in range(len(features)):
+            query_keys = features[i].view(-1, 1, 256)
+            features[i] = self.attention_layer(query=query_keys, key=query_keys, value=query_keys)[0] # (batch_size, 1, 256)
+        return features # (batch_size, 4, 256) 4 branch features
+    
+    def cross_attention(self, features):
+        features_cross = []
+        for i in range(len(features)):
+            for j in range(len(features)):
+                key = features[j].view(-1, 1, 256)
+                value = features[j].view(-1, 1, 256)
+                query = features[i].view(-1, 1, 256)
+                attended_output = self.attention_layer(query=query, key=key, value=value)[0]
+                features_cross.append(attended_output)
+        return features_cross
+
+    def forward(self, x_context, x_body, x_face, x_text):
+        context_features = self.fc_context(x_context.view(-1, x_context.size(-1)))
+        body_features = self.fc_body(x_body.view(-1, x_body.size(-1)))
+        face_features = self.fc_face(x_face.view(-1, x_face.size(-1)))
+        text_features = self.fc_text(x_text.view(-1, x_text.size(-1)))
+
+        features = torch.stack([context_features, body_features, face_features, text_features], dim=1)  # (batch_size, 4, 256)
+        
+        # self attention
+        features_self = self.self_attention(features)
+        # cross attention
+        features_cross = self.cross_attention(features)
+
+        fuse_features = torch.cat((context_features, body_features, face_features, text_features), 1)
+        fuse_out = self.fc1(fuse_features)
+        fuse_out = self.bn1(fuse_out)
+        fuse_out = self.relu(fuse_out)
+        fuse_out = self.d1(fuse_out)
+        cat_out = self.fc2(fuse_out)
+
+        return cat_out
