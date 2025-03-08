@@ -254,14 +254,30 @@ class FusionAttentionModel(nn.Module):
     
     def cross_attention(self, features):
         features_cross = []
-        for i in range(len(features)):
-            for j in range(len(features)):
-                key = features[j].view(-1, 1, 256)
-                value = features[j].view(-1, 1, 256)
-                query = features[i].view(-1, 1, 256)
+        len_f = features.shape[1]
+        
+        for i in range(len_f):
+            query = features[i].view(-1, 1, 256)
+            for j in range(len_f):
+                key = features[len_f - j - 1].view(-1, 1, 256)
+                value = key
+                
                 attended_output = self.attention_layer(query=query, key=key, value=value)[0]
                 features_cross.append(attended_output)
-        return features_cross
+        
+        return torch.cat(features_cross, dim=1)  # shape (batch_size, 12, 256)
+    def fusion_attention(self, features_self, features_cross):
+        len_self = features_self.shape[1]
+        len_cross = features_cross.shape[1]
+        for i in range(len_self):
+            for j in range(len_cross):
+                query = features_self[i].view(-1, 1, 256)
+                key = features_cross[j].view(-1, 1, 256)
+                value = key
+
+                attended_output = self.attention_layer(query=query, key=key, value=value)[0]
+                features_self[i] = attended_output
+        return
 
     def forward(self, x_context, x_body, x_face, x_text):
         context_features = self.fc_context(x_context.view(-1, x_context.size(-1)))
@@ -276,6 +292,9 @@ class FusionAttentionModel(nn.Module):
         # cross attention
         features_cross = self.cross_attention(features)
 
+        
+
+        # Concatenate features
         fuse_features = torch.cat((context_features, body_features, face_features, text_features), 1)
         fuse_out = self.fc1(fuse_features)
         fuse_out = self.bn1(fuse_out)
