@@ -385,3 +385,78 @@ class TransformerFusionModel(nn.Module):
         cat_out = self.fc2(fuse_out)
         return cat_out
 
+
+class AdaptiveAttention(nn.Module):
+    def __init__(self, feature_dim, hidden_dim=128):
+        super(AdaptiveAttention, self).__init__()
+        self.feature_dim = feature_dim
+        
+        # Mạng phụ để tính trọng số thích nghi
+        self.gating_network = nn.Sequential(
+            nn.Linear(feature_dim * 4, hidden_dim),  # Đầu vào là tất cả đặc trưng gộp lại
+            nn.ReLU(),
+            nn.Linear(hidden_dim, 4),  # Đầu ra là trọng số cho 4 đặc trưng
+            nn.Sigmoid()  # Trọng số trong khoảng [0, 1]
+        )
+
+    def forward(self, context, body, face, text):
+        # context, body, face, text: (batch_size, feature_dim)
+        batch_size = context.size(0)
+        
+        # Gộp tất cả đặc trưng để đưa vào gating network
+        all_features = torch.cat([context, body, face, text], dim=1)  # (batch_size, feature_dim * 4)
+        
+        # Tính trọng số thích nghi
+        weights = self.gating_network(all_features)  # (batch_size, 4)
+        weights = weights.unsqueeze(2)  # (batch_size, 4, 1) - để nhân với đặc trưng
+        
+        # Chuẩn bị đặc trưng để nhân với trọng số
+        features = torch.stack([context, body, face, text], dim=1)  # (batch_size, 4, feature_dim)
+        
+        # Áp dụng trọng số thích nghi
+        weighted_features = features * weights  # (batch_size, 4, feature_dim)
+        
+        # Tổng hợp bằng cách lấy trung bình hoặc cộng (ở đây dùng trung bình)
+        fused_features = weighted_features.mean(dim=1)  # (batch_size, feature_dim)
+        
+        return fused_features
+
+class AdaptiveFusionModel(nn.Module):
+    def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features, 
+                 feature_dim=256):
+        super(AdaptiveFusionModel, self).__init__()
+        self.feature_dim = feature_dim
+
+        # Chiếu đặc trưng về cùng không gian
+        self.fc_context = nn.Linear(num_context_features, feature_dim)
+        self.fc_body = nn.Linear(num_body_features, feature_dim)
+        self.fc_face = nn.Linear(num_face_features, feature_dim)
+        self.fc_text = nn.Linear(num_text_features, feature_dim)
+
+        # Adaptive Attention
+        self.adaptive_att = AdaptiveAttention(feature_dim=feature_dim)
+
+        # Tầng đầu ra
+        self.fc1 = nn.Linear(feature_dim, 256)  # Sau khi tổng hợp, giảm chiều nếu cần
+        self.fc2 = nn.Linear(256, 26)
+        self.bn1 = nn.BatchNorm1d(256)
+        self.d1 = nn.Dropout(p=0.5)
+        self.relu = nn.ReLU()
+
+    def forward(self, x_context, x_body, x_face, x_text):
+        # Chiếu đặc trưng
+        context = self.fc_context(x_context.view(-1, x_context.size(-1)))  # (batch_size, feature_dim)
+        body = self.fc_body(x_body.view(-1, x_body.size(-1)))             # (batch_size, feature_dim)
+        face = self.fc_face(x_face.view(-1, x_face.size(-1)))             # (batch_size, feature_dim)
+        text = self.fc_text(x_text.view(-1, x_text.size(-1)))             # (batch_size, feature_dim)
+
+        # Áp dụng Adaptive Attention để tổng hợp
+        fused_features = self.adaptive_att(context, body, face, text)  # (batch_size, feature_dim)
+
+        # Đầu ra
+        fuse_out = self.fc1(fused_features)
+        fuse_out = self.bn1(fuse_out)
+        fuse_out = self.relu(fuse_out)
+        fuse_out = self.d1(fuse_out)
+        cat_out = self.fc2(fuse_out)
+        return cat_out
