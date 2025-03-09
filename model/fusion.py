@@ -396,7 +396,8 @@ class AdaptiveAttention(nn.Module):
         # Mạng phụ để tính trọng số thích nghi
         self.gating_network = nn.Sequential(
             nn.Linear(feature_dim * 4, hidden_dim),  # Đầu vào là tất cả đặc trưng gộp lại
-            nn.ReLU(),
+            nn.BatchNorm1d(hidden_dim),
+            nn.GELU(),
             nn.Linear(hidden_dim, 4),  # Đầu ra là trọng số cho 4 đặc trưng
             nn.Sigmoid()  # Trọng số trong khoảng [0, 1]
         )
