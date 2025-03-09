@@ -322,7 +322,7 @@ class FusionAttentionModel(nn.Module):
 
 class TransformerFusionModel(nn.Module):
     def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features, 
-                 feature_dim=256, num_heads=4, num_layers=2):
+                 feature_dim=256, num_heads=4, num_layers=16):
         super(TransformerFusionModel, self).__init__()
         self.feature_dim = feature_dim
 
@@ -337,7 +337,7 @@ class TransformerFusionModel(nn.Module):
             d_model=feature_dim, 
             nhead=num_heads, 
             dim_feedforward=feature_dim * 4,  # FFN size
-            dropout=0.1,
+            dropout=0.5,
             activation='relu'
         )
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
@@ -372,7 +372,7 @@ class TransformerFusionModel(nn.Module):
 
         # Tổng hợp đặc trưng
         # Cách 1: Concatenate (như trước)
-        fuse_features = transformer_out.view(-1, self.feature_dim * 4)  # (batch_size, 256 * 4)
+        fuse_features = transformer_out.reshape(-1, self.feature_dim * 4)  # (batch_size, 256 * 4)
 
         # Cách 2: Lấy trung bình (commented, bạn có thể thử)
         # fuse_features = transformer_out.mean(dim=1)  # (batch_size, feature_dim)
