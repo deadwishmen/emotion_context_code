@@ -42,7 +42,7 @@ def get_arg():
   parser.add_argument('--weight_decay', default=5e-4, type=float)
   parser.add_argument('--step_size', default=7, type=int)
   parser.add_argument('--gamma', default=0.1, type=float)
-  parser.add_argument('--conbine', default='concat',choices=['concat', 'sum', 'avg', 'trasformer'], type=str)
+  parser.add_argument('--conbine', default='concat',choices=['concat', 'sum', 'avg', 'transformer'], type=str)
   parser.add_argument('--model_text', default='distilbert', choices = ['distilbert', 'bert', 'roberta', 'deberta'], type=str)
   pars = parser.parse_args()
   return pars
@@ -131,7 +131,7 @@ def train(pars):
     fusion_model = FusionModel(num_context_features, num_body_features, num_face_features, num_text_features, conbine)
   elif conbine == "avg":
     fusion_model = FusionModel(num_context_features, num_body_features, num_face_features, num_text_features, conbine)
-  elif conbine == "trasformer":
+  elif conbine == "transformer":
     fusion_model = TransformerFusionModel(num_context_features, num_body_features, num_face_features, num_text_features) 
   #fusion_model = FusionModel(num_context_features, num_body_features, num_face_features, conbine, isSwinT)
   #fusion_model = FusionConcatModel(num_context_features, num_body_features, num_face_features, num_text_features, isSwinT)

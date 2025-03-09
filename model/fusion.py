@@ -319,9 +319,6 @@ class FusionAttentionModel(nn.Module):
 
 #############Trasformer Fusion Model####################
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 class TransformerFusionModel(nn.Module):
     def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features, 
