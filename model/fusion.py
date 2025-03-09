@@ -386,6 +386,8 @@ class TransformerFusionModel(nn.Module):
         return cat_out
 
 
+
+
 class AdaptiveAttention(nn.Module):
     def __init__(self, feature_dim, hidden_dim=128):
         super(AdaptiveAttention, self).__init__()
@@ -421,23 +423,51 @@ class AdaptiveAttention(nn.Module):
         
         return fused_features
 
-class AdaptiveFusionModel(nn.Module):
+class SelfAttention(nn.Module):
+    def __init__(self, feature_dim, num_heads=4):
+        super(SelfAttention, self).__init__()
+        self.feature_dim = feature_dim
+        self.num_heads = num_heads
+        self.head_dim = feature_dim // num_heads
+        assert self.head_dim * num_heads == feature_dim
+        
+        self.query = nn.Linear(feature_dim, feature_dim)
+        self.key = nn.Linear(feature_dim, feature_dim)
+        self.value = nn.Linear(feature_dim, feature_dim)
+        self.scale = self.head_dim ** -0.5
+        self.fc_out = nn.Linear(feature_dim, feature_dim)
+
+    def forward(self, x):
+        batch_size = x.size(0)
+        Q = self.query(x).view(batch_size, self.num_heads, self.head_dim).permute(0, 1, 2)
+        K = self.key(x).view(batch_size, self.num_heads, self.head_dim).permute(0, 1, 2)
+        V = self.value(x).view(batch_size, self.num_heads, self.head_dim).permute(0, 1, 2)
+        
+        energy = torch.bmm(Q, K.transpose(-1, -2)) * self.scale
+        attention = F.softmax(energy, dim=-1)
+        out = torch.bmm(attention, V).permute(0, 2, 1).contiguous().view(batch_size, self.feature_dim)
+        return self.fc_out(out)
+
+class AdaptiveFusionModelWithSelfAttention(nn.Module):
     def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features, 
                  feature_dim=256):
-        super(AdaptiveFusionModel, self).__init__()
+        super(AdaptiveFusionModelWithSelfAttention, self).__init__()
         self.feature_dim = feature_dim
 
-        # Chiếu đặc trưng về cùng không gian
+        # Chiếu đặc trưng
         self.fc_context = nn.Linear(num_context_features, feature_dim)
         self.fc_body = nn.Linear(num_body_features, feature_dim)
         self.fc_face = nn.Linear(num_face_features, feature_dim)
         self.fc_text = nn.Linear(num_text_features, feature_dim)
 
+        # Self-Attention cho từng đặc trưng
+        self.self_att = SelfAttention(feature_dim=feature_dim)
+
         # Adaptive Attention
         self.adaptive_att = AdaptiveAttention(feature_dim=feature_dim)
 
         # Tầng đầu ra
-        self.fc1 = nn.Linear(feature_dim, 256)  # Sau khi tổng hợp, giảm chiều nếu cần
+        self.fc1 = nn.Linear(feature_dim, 256)
         self.fc2 = nn.Linear(256, 26)
         self.bn1 = nn.BatchNorm1d(256)
         self.d1 = nn.Dropout(p=0.5)
@@ -445,13 +475,19 @@ class AdaptiveFusionModel(nn.Module):
 
     def forward(self, x_context, x_body, x_face, x_text):
         # Chiếu đặc trưng
-        context = self.fc_context(x_context.view(-1, x_context.size(-1)))  # (batch_size, feature_dim)
-        body = self.fc_body(x_body.view(-1, x_body.size(-1)))             # (batch_size, feature_dim)
-        face = self.fc_face(x_face.view(-1, x_face.size(-1)))             # (batch_size, feature_dim)
-        text = self.fc_text(x_text.view(-1, x_text.size(-1)))             # (batch_size, feature_dim)
+        context = self.fc_context(x_context.view(-1, x_context.size(-1)))
+        body = self.fc_body(x_body.view(-1, x_body.size(-1)))
+        face = self.fc_face(x_face.view(-1, x_face.size(-1)))
+        text = self.fc_text(x_text.view(-1, x_text.size(-1)))
 
-        # Áp dụng Adaptive Attention để tổng hợp
-        fused_features = self.adaptive_att(context, body, face, text)  # (batch_size, feature_dim)
+        # Áp dụng Self-Attention
+        context = self.self_att(context)
+        body = self.self_att(body)
+        face = self.self_att(face)
+        text = self.self_att(text)
+
+        # Áp dụng Adaptive Attention
+        fused_features = self.adaptive_att(context, body, face, text)
 
         # Đầu ra
         fuse_out = self.fc1(fused_features)
@@ -460,3 +496,4 @@ class AdaptiveFusionModel(nn.Module):
         fuse_out = self.d1(fuse_out)
         cat_out = self.fc2(fuse_out)
         return cat_out
+

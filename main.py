@@ -12,7 +12,7 @@ from model.resnet import resnet50V2, resnet50_place365
 from model.cnn_face import cnn_face
 from model.swin_transformer import swin_v2_t, swin_v2_s, swin_v2_b
 from model.vit import vit_b_16
-from model.fusion import FusionModel, FusionConcatModel, FusionFullCrossAttentionModel, FusionAttentionModel, TransformerFusionModel, AdaptiveFusionModel
+from model.fusion import FusionModel, FusionConcatModel, FusionFullCrossAttentionModel, FusionAttentionModel, TransformerFusionModel, AdaptiveFusionModelWithSelfAttention
 from dataset.data_loader import load_data, set_normalization_and_transforms
 from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss
 from utils.training import train_disc
@@ -134,7 +134,7 @@ def train(pars):
   elif conbine == "transformer":
     fusion_model = TransformerFusionModel(num_context_features, num_body_features, num_face_features, num_text_features) 
   elif conbine == "adaptive":
-    fusion_model = AdaptiveFusionModel(num_context_features, num_body_features, num_face_features, num_text_features)
+    fusion_model = AdaptiveFusionModelWithSelfAttention(num_context_features, num_body_features, num_face_features, num_text_features)
   #fusion_model = FusionModel(num_context_features, num_body_features, num_face_features, conbine, isSwinT)
   #fusion_model = FusionConcatModel(num_context_features, num_body_features, num_face_features, num_text_features, isSwinT)
   # fusion_model = FusionFullCrossAttentionModel(num_context_features, num_body_features, num_face_features, num_text_features)
