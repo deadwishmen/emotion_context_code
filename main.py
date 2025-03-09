@@ -134,7 +134,7 @@ def train(pars):
   elif conbine == "transformer":
     fusion_model = TransformerFusionModel(num_context_features, num_body_features, num_face_features, num_text_features) 
   elif conbine == "adaptive":
-    fusion_model = AdaptiveFusionModel(num_context_features, num_body_features, num_face_features, num_text_features, feature_dim=2048)
+    fusion_model = AdaptiveFusionModel(num_context_features, num_body_features, num_face_features, num_text_features)
   #fusion_model = FusionModel(num_context_features, num_body_features, num_face_features, conbine, isSwinT)
   #fusion_model = FusionConcatModel(num_context_features, num_body_features, num_face_features, num_text_features, isSwinT)
   # fusion_model = FusionFullCrossAttentionModel(num_context_features, num_body_features, num_face_features, num_text_features)
