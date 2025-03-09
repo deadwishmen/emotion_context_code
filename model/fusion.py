@@ -396,7 +396,7 @@ class AdaptiveAttention(nn.Module):
             nn.Linear(feature_dim * 4, hidden_dim),  # Đầu vào là tất cả đặc trưng gộp lại
             nn.ReLU(),
             nn.Linear(hidden_dim, 4),  # Đầu ra là trọng số cho 4 đặc trưng
-            nn.Softmax()  # Trọng số trong khoảng [0, 1]
+            nn.Softmax(dim=1)  # Trọng số trong khoảng [0, 1]
         )
 
     def forward(self, context, body, face, text):
