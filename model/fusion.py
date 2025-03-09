@@ -231,9 +231,6 @@ class FusionFullCrossAttentionModel(nn.Module):
 
 
 
-import torch
-import torch.nn as nn
-
 class FusionAttentionModel(nn.Module):
     def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features):
         super(FusionAttentionModel, self).__init__()
@@ -317,5 +314,77 @@ class FusionAttentionModel(nn.Module):
         fuse_out = self.d1(fuse_out)
         cat_out = self.fc2(fuse_out)
 
+        return cat_out
+
+
+#############Trasformer Fusion Model####################
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class TransformerFusionModel(nn.Module):
+    def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features, 
+                 feature_dim=256, num_heads=4, num_layers=2):
+        super(TransformerFusionModel, self).__init__()
+        self.feature_dim = feature_dim
+
+        # Chiếu đặc trưng về cùng không gian
+        self.fc_context = nn.Linear(num_context_features, feature_dim)
+        self.fc_body = nn.Linear(num_body_features, feature_dim)
+        self.fc_face = nn.Linear(num_face_features, feature_dim)
+        self.fc_text = nn.Linear(num_text_features, feature_dim)
+
+        # Transformer Encoder
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=feature_dim, 
+            nhead=num_heads, 
+            dim_feedforward=feature_dim * 4,  # FFN size
+            dropout=0.1,
+            activation='relu'
+        )
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+
+        # Positional Encoding (tùy chọn, để đánh dấu thứ tự các đặc trưng)
+        self.pos_encoding = nn.Parameter(torch.zeros(1, 4, feature_dim))  # 4 là số đặc trưng
+
+        # Tổng hợp và đầu ra
+        self.fc1 = nn.Linear(feature_dim * 4, 256)  # Có thể thay bằng feature_dim nếu dùng mean
+        self.fc2 = nn.Linear(256, 26)
+        self.bn1 = nn.BatchNorm1d(256)
+        self.d1 = nn.Dropout(p=0.5)
+        self.relu = nn.ReLU()
+
+    def forward(self, x_context, x_body, x_face, x_text):
+        # Chiếu đặc trưng
+        context = self.fc_context(x_context.view(-1, x_context.size(-1)))  # (batch_size, feature_dim)
+        body = self.fc_body(x_body.view(-1, x_body.size(-1)))             # (batch_size, feature_dim)
+        face = self.fc_face(x_face.view(-1, x_face.size(-1)))             # (batch_size, feature_dim)
+        text = self.fc_text(x_text.view(-1, x_text.size(-1)))             # (batch_size, feature_dim)
+
+        # Gộp thành chuỗi đặc trưng
+        features = torch.stack([context, body, face, text], dim=1)  # (batch_size, 4, feature_dim)
+
+        # Thêm positional encoding
+        features = features + self.pos_encoding  # (batch_size, 4, feature_dim)
+
+        # Transformer yêu cầu input dạng (seq_len, batch_size, feature_dim)
+        features = features.permute(1, 0, 2)  # (4, batch_size, feature_dim)
+        transformer_out = self.transformer(features)  # (4, batch_size, feature_dim)
+        transformer_out = transformer_out.permute(1, 0, 2)  # (batch_size, 4, feature_dim)
+
+        # Tổng hợp đặc trưng
+        # Cách 1: Concatenate (như trước)
+        fuse_features = transformer_out.view(-1, self.feature_dim * 4)  # (batch_size, 256 * 4)
+
+        # Cách 2: Lấy trung bình (commented, bạn có thể thử)
+        # fuse_features = transformer_out.mean(dim=1)  # (batch_size, feature_dim)
+
+        # Đầu ra
+        fuse_out = self.fc1(fuse_features)
+        fuse_out = self.bn1(fuse_out)
+        fuse_out = self.relu(fuse_out)
+        fuse_out = self.d1(fuse_out)
+        cat_out = self.fc2(fuse_out)
         return cat_out
 
