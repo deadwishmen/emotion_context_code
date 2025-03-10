@@ -14,7 +14,7 @@ from model.swin_transformer import swin_v2_t, swin_v2_s, swin_v2_b
 from model.vit import vit_b_16
 from model.fusion import FusionModel, FusionConcatModel, FusionFullCrossAttentionModel, FusionAttentionModel, TransformerFusionModel, AdaptiveFusionModelWithSelfAttention
 from dataset.data_loader import load_data, set_normalization_and_transforms
-from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss
+from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss, FocalLoss
 from utils.training import train_disc
 from utils.testing import test_disc
 
@@ -165,6 +165,8 @@ def train(pars):
     disc_loss = BCEWithLogitsLoss('dynamic', device)
   elif loss_function == "CrossEntropy":
     disc_loss = CrossEtropyLoss('dynamic', device)
+  elif loss_function == "FocalLoss":
+    disc_loss = FocalLoss(gamma=2.0, alpha=None, weight_type='mean', device=device)
 
 
   train_loss, val_loss, train_mae, val_mae = train_disc(epochs, 

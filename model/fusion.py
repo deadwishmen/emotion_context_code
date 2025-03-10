@@ -421,8 +421,7 @@ class AdaptiveAttention(nn.Module):
         weighted_features = features * weights  # (batch_size, 4, feature_dim)
         
         # Tổng hợp bằng cách lấy trung bình hoặc cộng (ở đây dùng trung bình)
-        fused_features = weighted_features.mean(dim=1)  # (batch_size, feature_dim)
-        
+        fused_features = weighted_features.view(-1, self.feature_dim*4) # (batch_size, feature_dim * 4)
         return fused_features
 
 class SelfAttention(nn.Module):
@@ -469,7 +468,7 @@ class AdaptiveFusionModelWithSelfAttention(nn.Module):
         self.adaptive_att = AdaptiveAttention(feature_dim=feature_dim)
 
         # Tầng đầu ra
-        self.fc1 = nn.Linear(feature_dim, 256)
+        self.fc1 = nn.Linear(feature_dim*4, 256)
         self.fc2 = nn.Linear(256, 26)
         self.bn1 = nn.BatchNorm1d(256)
         self.d1 = nn.Dropout(p=0.5)
