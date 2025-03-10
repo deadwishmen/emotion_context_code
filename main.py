@@ -35,7 +35,7 @@ def get_arg():
   parser.add_argument('--save_model', default='./save_model', type=str)
   parser.add_argument('--batch_size', default=26, type=int)
   parser.add_argument('--epochs', default=25, type=int)
-  parser.add_argument('--loss', default='L2', type=str, choices=['L2', 'BCE', 'CrossEntropy', 'Huber'])
+  parser.add_argument('--loss', default='L2', type=str, choices=['L2', 'BCE', 'CrossEntropy', 'Huber', 'FocalLoss'])
   parser.add_argument('--model_body', default='swin-t', type=str, choices=['swin-t', 'swin-s', 'swin-b', 'swin-l', 'resnet', 'vit'])
   parser.add_argument('--path_dataset', default='/content/drive/MyDrive/DatMinhNe/Dataset/emotic_obj_full', type=str)
   parser.add_argument('--learning_rate', default=0.001, type=float)
