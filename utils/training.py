@@ -28,7 +28,7 @@ def train_disc(epochs,
 
   min_loss = np.inf
   min_mae = np.inf
-
+  max_val = 0
   train_loss = list()
   val_loss = list()
   train_mae = list()
@@ -163,9 +163,9 @@ def train_disc(epochs,
     scheduler.step()
     print('')
 
-    if val_loss[-1] < min_loss:
+    if val_mae[-1] > max_val:
 
-        min_loss = val_loss[-1]
+        max_val = val_mae[-1]
 
         # saving models for lowest loss
 
