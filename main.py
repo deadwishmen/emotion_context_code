@@ -126,7 +126,7 @@ def train(pars):
   print(num_face_features)
 
   if conbine == "concat":
-    fusion_model = FusionAttentionModel(num_context_features, num_body_features, num_face_features, num_text_features)
+    fusion_model = FusionConcatModel(num_context_features, num_body_features, num_face_features, num_text_features)
   elif conbine == "sum":
     fusion_model = FusionModel(num_context_features, num_body_features, num_face_features, num_text_features, conbine)
   elif conbine == "avg":
