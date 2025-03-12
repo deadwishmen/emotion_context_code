@@ -453,3 +453,55 @@ class AdaptiveFusionModelWithSelfAttention(nn.Module):
         cat_out = self.fc2(fuse_out)
         return cat_out
 
+
+class FusionAttnModel(nn.Module):
+    def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features):
+        super(FusionAttnModel, self).__init__()
+
+        self.num_context_features = num_context_features
+        self.num_body_features = num_body_features
+        self.num_face_features = num_face_features
+        self.num_text_features = num_text_features
+
+        self.fc_context = nn.Linear(num_context_features, 256)
+        self.fc_body = nn.Linear(num_body_features, 256)
+        self.fc_face = nn.Linear(num_face_features, 256)
+        self.fc_text = nn.Linear(num_text_features, 256)
+
+        # Linear layer to compute attention weights
+        self.attention_weights = nn.Linear(256 * 4, 4)
+
+        self.bn1 = nn.BatchNorm1d(256)
+        self.d1 = nn.dropout(p=0.5)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(256, 26)
+
+    def forward(self, x_context, x_body, x_face, x_text):
+        context_features = x_context.view(-1, self.num_context_features)
+        body_features = x_body.view(-1, self.num_body_features)
+        face_features = x_face.view(-1, self.num_face_features)
+        text_features = x_text.view(-1, self.num_text_features)
+
+        context_features = self.fc_context(context_features)
+        body_features = self.fc_body(body_features)
+        face_features = self.fc_face(face_features)
+        text_features = self.fc_text(text_features)
+
+        # Concatenate features to compute attention weights
+        fuse_features = torch.cat((context_features, body_features, face_features, text_features), 1)
+        attention_scores = self.attention_weights(fuse_features)  # (batch_size, 4)
+        attention_weights = F.softmax(attention_scores, dim=1)  # (batch_size, 4)
+
+        # Stack the feature vectors
+        feature_tensor = torch.stack([context_features, body_features, face_features, text_features], dim=1)  # (batch_size, 4, 256)
+
+        # Compute attended features
+        attended_features = (feature_tensor * attention_weights.unsqueeze(-1)).sum(dim=1)  # (batch_size, 256)
+
+        # Pass through the rest of the network
+        out = self.bn1(attended_features)
+        out = self.relu(out)
+        out = self.d1(out)
+        cat_out = self.fc2(out)
+
+        return cat_out
