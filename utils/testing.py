@@ -59,7 +59,6 @@ def test_disc(models, device, data_loader, num_images):
             pred_face = model_face(images_face)
             pred_text = model_text(**tokenizer_text).last_hidden_state[:, 0, :]
             pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
-            pred_cat = torch.sigmoid(pred_cat)
             
             cat_preds[ indx : (indx + pred_cat.shape[0]), :] = pred_cat.to("cpu").data.numpy()
             cat_labels[ indx : (indx + labels_cat.shape[0]), :] = labels_cat.to("cpu").data.numpy()
