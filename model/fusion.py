@@ -183,55 +183,6 @@ class FusionConcatModel(nn.Module):
 
 #######################Cross Attention Model######################
 
-class FusionFullCrossAttentionModel(nn.Module):
-    def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features):
-        super(FusionFullCrossAttentionModel, self).__init__()
-        self.fc_context = nn.Linear(num_context_features, 256)
-        self.fc_body = nn.Linear(num_body_features, 256)
-        self.fc_face = nn.Linear(num_face_features, 256)
-        self.fc_text = nn.Linear(num_text_features, 256)
-
-        # Cross-Attention cho tất cả đặc trưng
-        self.cross_attention = CrossAttention(feature_dim=256)
-
-        self.fc1 = nn.Linear(256 * 4, 256)  # Tổng hợp 4 đặc trưng
-        self.fc2 = nn.Linear(256, 26)
-        self.bn1 = nn.BatchNorm1d(256)
-        self.d1 = nn.Dropout(p=0.5)
-        self.relu = nn.ReLU()
-
-    def forward(self, x_context, x_body, x_face, x_text):
-        context_features = self.fc_context(x_context.view(-1, x_context.size(-1)))
-        body_features = self.fc_body(x_body.view(-1, x_body.size(-1)))
-        face_features = self.fc_face(x_face.view(-1, x_face.size(-1)))
-        text_features = self.fc_text(x_text.view(-1, x_text.size(-1)))
-
-        # Gộp tất cả đặc trưng thành một tensor
-        all_features = torch.stack([context_features, body_features, face_features, text_features], dim=1)  # (batch_size, 4, 256)
-
-        # Áp dụng Cross-Attention giữa tất cả
-        batch_size = all_features.size(0)
-        fused_features = []
-        for i in range(4):
-            source = all_features[:, i, :]  # (batch_size, 256)
-            target = all_features.mean(dim=1)  # (batch_size, 256) - trung bình tất cả đặc trưng làm target
-            out = self.cross_attention(source, target)
-            fused_features.append(out)
-        
-        # Tổng hợp
-        fuse_features = torch.cat(fused_features, dim=1)  # (batch_size, 256*4)
-        fuse_out = self.fc1(fuse_features)
-        fuse_out = self.bn1(fuse_out)
-        fuse_out = self.relu(fuse_out)
-        fuse_out = self.d1(fuse_out)
-        cat_out = self.fc2(fuse_out)
-        return cat_out
-
-
-##############Attention Model####################
-
-
-
 class FusionAttentionModel(nn.Module):
     def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features):
         super(FusionAttentionModel, self).__init__()
@@ -246,7 +197,7 @@ class FusionAttentionModel(nn.Module):
         self.bn1 = nn.BatchNorm1d(feature_dim)
         self.d1 = nn.Dropout(p=0.5)
         self.relu = nn.ReLU()
-        self.attention_layer = nn.MultiheadAttention(feature_dim, 8)  # Số heads hợp lý hơn (8 thay vì 64)
+        self.attention_layer = nn.MultiheadAttention(feature_dim, 8)  # Số heads là 8 thay vì 64 cho hợp lý
 
         self.gate_layer = nn.Sequential(
             nn.Linear(feature_dim, feature_dim),
@@ -264,16 +215,18 @@ class FusionAttentionModel(nn.Module):
         # Chuyển về dạng (num_modalities, batch_size, feature_dim) để phù hợp với MultiheadAttention
         features = features.permute(1, 0, 2)  # (num_modalities, batch_size, feature_dim)
         
-        # Self-Attention
+        # Self-Attention với Residual Connection
         self_outputs = []
         for i in range(num_modalities):
             query = key = value = features[i].unsqueeze(0)  # (1, batch_size, feature_dim)
             attended_output, _ = self.attention_layer(query, key, value)  # (1, batch_size, feature_dim)
+            # Thêm residual connection: cộng đầu ra với query
+            attended_output = attended_output + query  # Residual connection
             self_outputs.append(attended_output.squeeze(0))  # (batch_size, feature_dim)
         
         features_self = torch.stack(self_outputs, dim=1)  # (batch_size, num_modalities, feature_dim)
 
-        # Cross-Attention
+        # Cross-Attention với Residual Connection
         cross_outputs = []
         for i in range(num_modalities):
             query = features[i].unsqueeze(0)  # (1, batch_size, feature_dim)
@@ -281,9 +234,11 @@ class FusionAttentionModel(nn.Module):
                 if j != i:
                     key = value = features[num_modalities - j - 1].unsqueeze(0)  # Đảo ngược key-value
                     attended_output, _ = self.attention_layer(query, key, value)  # (1, batch_size, feature_dim)
+                    # Thêm residual connection: cộng đầu ra với query
+                    attended_output = attended_output + query  # Residual connection
                     cross_outputs.append(attended_output.squeeze(0))  # (batch_size, feature_dim)
         
-        features_cross = torch.stack(cross_outputs, dim=1)  # (batch_size, num_modalities * num_modalities, feature_dim)
+        features_cross = torch.stack(cross_outputs, dim=1)  # (batch_size, num_modalities * (num_modalities-1), feature_dim)
 
         return features_self, features_cross
 
@@ -339,7 +294,7 @@ class TransformerFusionModel(nn.Module):
             nhead=num_heads, 
             dim_feedforward=feature_dim * 4,  # FFN size
             dropout=0.5,
-            activation='relu'
+            activation='GELU'
         )
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
 
