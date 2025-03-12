@@ -12,7 +12,7 @@ from model.resnet import resnet50V2, resnet50_place365
 from model.cnn_face import cnn_face
 from model.swin_transformer import swin_v2_t, swin_v2_s, swin_v2_b
 from model.vit import vit_b_16
-from model.fusion import FusionModel, FusionConcatModel, FusionFullCrossAttentionModel, FusionAttentionModel, TransformerFusionModel, AdaptiveFusionModelWithSelfAttention
+from model.fusion import FusionModel, FusionConcatModel, FusionAttentionModel, TransformerFusionModel, AdaptiveFusionModelWithSelfAttention
 from dataset.data_loader import load_data, set_normalization_and_transforms
 from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss, FocalLoss
 from utils.training import train_disc
