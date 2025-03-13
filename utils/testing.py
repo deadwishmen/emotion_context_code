@@ -57,7 +57,7 @@ def test_disc(models, device, data_loader, num_images):
             pred_context = model_context(images_context)
             pred_body = model_body(images_body)
             pred_face = model_face(images_face)
-            pred_text = model_text(**tokenizer_text).last_hidden_state[:, 0, :]
+            pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
             pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
             
             cat_preds[ indx : (indx + pred_cat.shape[0]), :] = pred_cat.to("cpu").data.numpy()
