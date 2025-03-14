@@ -469,8 +469,11 @@ class FusionAttnModel(nn.Module):
         self.fc_text = nn.Linear(num_text_features, 256)
 
         # Linear layer to compute attention weights
-        self.attention_weights = nn.Linear(256 * 4, 4)
-
+        self.attention_weights = nn.Sequential(nn.Linear(256 * 4, 512),
+                                               nn.BatchNorm1d(512),
+                                               nn.ReLU(),
+                                               nn.Linear(512, 4))
+        self.fc1 = nn.Linear(256 * 4, 256)
         self.bn1 = nn.BatchNorm1d(256)
         self.d1 = nn.dropout(p=0.5)
         self.relu = nn.ReLU()
@@ -496,10 +499,11 @@ class FusionAttnModel(nn.Module):
         feature_tensor = torch.stack([context_features, body_features, face_features, text_features], dim=1)  # (batch_size, 4, 256)
 
         # Compute attended features
-        attended_features = (feature_tensor * attention_weights.unsqueeze(-1)).sum(dim=1)  # (batch_size, 256)
-
+        # attended_features = (feature_tensor * attention_weights.unsqueeze(-1)).sum(dim=1)  # (batch_size, 256)
+        attended_features = (feature_tensor * attention_weights.unsqueeze(-1)).view(-1, 256 * 4)
         # Pass through the rest of the network
-        out = self.bn1(attended_features)
+        out = self.fc1(attended_features)
+        out = self.bn1(out)
         out = self.relu(out)
         out = self.d1(out)
         cat_out = self.fc2(out)

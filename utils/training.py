@@ -69,10 +69,6 @@ def train_disc(epochs,
       tokenizer_text = {key: val.to(device) for key, val in tokenizer_text.items()}
       images_face = torch.mean(images_face, dim=1, keepdim=True).to(device)
 
-      # print(type(tokenizer_text))  # Phải là <class 'dict'>
-      # print(tokenizer_text.keys())  # Phải có ['input_ids', 'attention_mask']
-      # print(type(tokenizer_text["input_ids"]))  # Phải là <class 'torch.Tensor'>
-      # print(tokenizer_text["input_ids"].shape)  # Phải là (batch_size, sequence_length)
 
       labels_cat = labels_cat.to(device)
 
