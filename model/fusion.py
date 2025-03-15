@@ -344,114 +344,6 @@ class TransformerFusionModel(nn.Module):
 
 
 
-class AdaptiveAttention(nn.Module):
-    def __init__(self, feature_dim, hidden_dim=128):
-        super(AdaptiveAttention, self).__init__()
-        self.feature_dim = feature_dim
-        
-        # Mạng phụ để tính trọng số thích nghi
-        self.gating_network = nn.Sequential(
-            nn.Linear(feature_dim * 4, hidden_dim),  # Đầu vào là tất cả đặc trưng gộp lại
-            nn.BatchNorm1d(hidden_dim),
-            nn.GELU(),
-            nn.Linear(hidden_dim, 4),  # Đầu ra là trọng số cho 4 đặc trưng
-            nn.Sigmoid()  # Trọng số trong khoảng [0, 1]
-        )
-
-    def forward(self, context, body, face, text):
-        # context, body, face, text: (batch_size, feature_dim)
-        batch_size = context.size(0)
-        
-        # Gộp tất cả đặc trưng để đưa vào gating network
-        all_features = torch.cat([context, body, face, text], dim=1)  # (batch_size, feature_dim * 4)
-        
-        # Tính trọng số thích nghi
-        weights = self.gating_network(all_features)  # (batch_size, 4)
-        weights = weights.unsqueeze(2)  # (batch_size, 4, 1) - để nhân với đặc trưng
-        
-        # Chuẩn bị đặc trưng để nhân với trọng số
-        features = torch.stack([context, body, face, text], dim=1)  # (batch_size, 4, feature_dim)
-        
-        # Áp dụng trọng số thích nghi
-        weighted_features = features * weights  # (batch_size, 4, feature_dim)
-        
-        # Tổng hợp bằng cách lấy trung bình hoặc cộng (ở đây dùng trung bình)
-        fused_features = weighted_features.view(-1, self.feature_dim*4) # (batch_size, feature_dim * 4)
-        return fused_features
-
-class SelfAttention(nn.Module):
-    def __init__(self, feature_dim, num_heads=4):
-        super(SelfAttention, self).__init__()
-        self.feature_dim = feature_dim
-        self.num_heads = num_heads
-        self.head_dim = feature_dim // num_heads
-        assert self.head_dim * num_heads == feature_dim
-        
-        self.query = nn.Linear(feature_dim, feature_dim)
-        self.key = nn.Linear(feature_dim, feature_dim)
-        self.value = nn.Linear(feature_dim, feature_dim)
-        self.scale = self.head_dim ** -0.5
-        self.fc_out = nn.Linear(feature_dim, feature_dim)
-
-    def forward(self, x):
-        batch_size = x.size(0)
-        Q = self.query(x).view(batch_size, self.num_heads, self.head_dim).permute(0, 1, 2)
-        K = self.key(x).view(batch_size, self.num_heads, self.head_dim).permute(0, 1, 2)
-        V = self.value(x).view(batch_size, self.num_heads, self.head_dim).permute(0, 1, 2)
-        
-        energy = torch.bmm(Q, K.transpose(-1, -2)) * self.scale
-        attention = F.softmax(energy, dim=-1)
-        out = torch.bmm(attention, V).permute(0, 2, 1).contiguous().view(batch_size, self.feature_dim)
-        return self.fc_out(out)
-
-class AdaptiveFusionModelWithSelfAttention(nn.Module):
-    def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features, 
-                 feature_dim=256):
-        super(AdaptiveFusionModelWithSelfAttention, self).__init__()
-        self.feature_dim = feature_dim
-
-        # Chiếu đặc trưng
-        self.fc_context = nn.Linear(num_context_features, feature_dim)
-        self.fc_body = nn.Linear(num_body_features, feature_dim)
-        self.fc_face = nn.Linear(num_face_features, feature_dim)
-        self.fc_text = nn.Linear(num_text_features, feature_dim)
-
-        # Self-Attention cho từng đặc trưng
-        self.self_att = SelfAttention(feature_dim=feature_dim)
-
-        # Adaptive Attention
-        self.adaptive_att = AdaptiveAttention(feature_dim=feature_dim)
-
-        # Tầng đầu ra
-        self.fc1 = nn.Linear(feature_dim*4, 256)
-        self.fc2 = nn.Linear(256, 26)
-        self.bn1 = nn.BatchNorm1d(256)
-        self.d1 = nn.Dropout(p=0.5)
-        self.relu = nn.ReLU()
-
-    def forward(self, x_context, x_body, x_face, x_text):
-        # Chiếu đặc trưng
-        context = self.fc_context(x_context.view(-1, x_context.size(-1)))
-        body = self.fc_body(x_body.view(-1, x_body.size(-1)))
-        face = self.fc_face(x_face.view(-1, x_face.size(-1)))
-        text = self.fc_text(x_text.view(-1, x_text.size(-1)))
-
-        # Áp dụng Self-Attention
-        context = self.self_att(context)
-        body = self.self_att(body)
-        face = self.self_att(face)
-        text = self.self_att(text)
-
-        # Áp dụng Adaptive Attention
-        fused_features = self.adaptive_att(context, body, face, text)
-
-        # Đầu ra
-        fuse_out = self.fc1(fused_features)
-        fuse_out = self.bn1(fuse_out)
-        fuse_out = self.relu(fuse_out)
-        fuse_out = self.d1(fuse_out)
-        cat_out = self.fc2(fuse_out)
-        return cat_out
 
 
 class FusionAttnModel(nn.Module):
@@ -475,7 +367,7 @@ class FusionAttnModel(nn.Module):
                                                nn.Linear(512, 4))
         self.fc1 = nn.Linear(256 * 4, 256)
         self.bn1 = nn.BatchNorm1d(256)
-        self.d1 = nn.dropout(p=0.5)
+        self.d1 = nn.Dropout(p=0.5)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(256, 26)
 
@@ -509,3 +401,178 @@ class FusionAttnModel(nn.Module):
         cat_out = self.fc2(out)
 
         return cat_out
+    
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, dim, num_heads=8, head_dim=64, dropout=0.0):
+        super().__init__()
+        self.num_heads = num_heads
+        self.head_dim = head_dim
+        self.scale = head_dim ** -0.5
+        
+        inner_dim = head_dim * num_heads
+        self.to_q = nn.Linear(dim, inner_dim, bias=False)
+        self.to_k = nn.Linear(dim, inner_dim, bias=False)
+        self.to_v = nn.Linear(dim, inner_dim, bias=False)
+        
+        self.to_out = nn.Sequential(
+            nn.Linear(inner_dim, dim),
+            nn.Dropout(dropout)
+        )
+        
+    def forward(self, q, k, v):
+        # q, k, v shapes: [batch_size, seq_len, dim]
+        batch_size, q_len, _ = q.shape
+        _, k_len, _ = k.shape
+        
+        # Project to multi-head queries, keys, values
+        q = self.to_q(q).reshape(batch_size, q_len, self.num_heads, self.head_dim).permute(0, 2, 1, 3)
+        k = self.to_k(k).reshape(batch_size, k_len, self.num_heads, self.head_dim).permute(0, 2, 1, 3)
+        v = self.to_v(v).reshape(batch_size, k_len, self.num_heads, self.head_dim).permute(0, 2, 1, 3)
+        
+        # Scaled dot-product attention
+        attn = torch.matmul(q, k.transpose(-1, -2)) * self.scale
+        attn = F.softmax(attn, dim=-1)
+        
+        # Apply attention weights
+        out = torch.matmul(attn, v)
+        
+        # Reshape and project back
+        out = out.permute(0, 2, 1, 3).reshape(batch_size, q_len, -1)
+        return self.to_out(out)
+
+class AttentionBlock(nn.Module):
+    def __init__(self, feature_dim, prompt_dim, num_heads=8, head_dim=64, dropout=0.1):
+        super().__init__()
+        self.feature_dim = feature_dim
+        self.prompt_dim = prompt_dim
+        
+        # Self-attention components
+        self.self_attention = MultiHeadAttention(feature_dim, num_heads, head_dim, dropout)
+        self.norm1 = nn.LayerNorm(feature_dim)
+        
+        # Cross-attention components
+        self.cross_attention = MultiHeadAttention(feature_dim, num_heads, head_dim, dropout)
+        self.norm2 = nn.LayerNorm(feature_dim)
+        
+        # Feed-forward network
+        self.ffn = nn.Sequential(
+            nn.Linear(feature_dim, feature_dim * 4),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(feature_dim * 4, feature_dim),
+            nn.Dropout(dropout)
+        )
+        self.norm3 = nn.LayerNorm(feature_dim)
+        
+        # Projection for prompt embedding if dimensions don't match
+        self.prompt_proj = None
+        if prompt_dim != feature_dim:
+            self.prompt_proj = nn.Linear(prompt_dim, feature_dim)
+    
+    def forward(self, features, prompt_embedding):
+        # features shape: [batch_size, seq_len_img, feature_dim]
+        # prompt_embedding shape: [batch_size, seq_len_prompt, prompt_dim]
+        
+        # Project prompt embeddings if needed
+        if self.prompt_proj is not None:
+            prompt_embedding = self.prompt_proj(prompt_embedding)
+        
+        # Self-attention: Image features attending to themselves
+        residual = features
+        features = self.norm1(features)
+        features = residual + self.self_attention(features, features, features)
+        
+        # Cross-attention: Image features attending to text
+        residual = features
+        features = self.norm2(features)
+        features = residual + self.cross_attention(features, prompt_embedding, prompt_embedding)
+        
+        # Feed-forward network
+        residual = features
+        features = self.norm3(features)
+        features = residual + self.ffn(features)
+        
+        return features
+
+class DualPathAttentionFusion(nn.Module):
+    def __init__(
+        self, 
+        num_context_features, 
+        num_body_features, 
+        num_face_features, 
+        num_text_features,
+        hidden_dim=256,
+        num_heads=8,
+        head_dim=32,
+        dropout=0.1,
+        num_layers=2
+    ):
+        super().__init__()
+        
+        # Feature projection layers
+        self.context_proj = nn.Linear(num_context_features, hidden_dim)
+        self.body_proj = nn.Linear(num_body_features, hidden_dim)
+        self.face_proj = nn.Linear(num_face_features, hidden_dim)
+        self.text_proj = nn.Linear(num_text_features, hidden_dim)
+        
+        # Context as query to other modalities
+        self.context_attention_layers = nn.ModuleList([
+            AttentionBlock(hidden_dim, hidden_dim, num_heads, head_dim, dropout)
+            for _ in range(num_layers)
+        ])
+        
+        # Final fusion and classification
+        self.fusion = nn.Sequential(
+            nn.Linear(hidden_dim * 4, hidden_dim),
+            nn.LayerNorm(hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, 26)
+        )
+        
+    def forward(self, x_context, x_body, x_face, x_text):
+        # Project features to common dimension
+        context_features = self.context_proj(x_context)
+        body_features = self.body_proj(x_body)
+        face_features = self.face_proj(x_face)
+        text_features = self.text_proj(x_text)
+        
+        # Add sequence dimension if not present
+        if context_features.dim() == 2:
+            context_features = context_features.unsqueeze(1)
+        if body_features.dim() == 2:
+            body_features = body_features.unsqueeze(1)
+        if face_features.dim() == 2:
+            face_features = face_features.unsqueeze(1)
+        if text_features.dim() == 2:
+            text_features = text_features.unsqueeze(1)
+        
+        # Apply attention layers - context attends to other modalities
+        enhanced_context_body = context_features
+        enhanced_context_face = context_features
+        enhanced_context_text = context_features
+        
+        for layer in self.context_attention_layers:
+            enhanced_context_body = layer(enhanced_context_body, body_features)
+            enhanced_context_face = layer(enhanced_context_face, face_features)
+            enhanced_context_text = layer(enhanced_context_text, text_features)
+        
+        # Squeeze back if necessary (batch_size, hidden_dim)
+        enhanced_context_body = enhanced_context_body.squeeze(1)
+        enhanced_context_face = enhanced_context_face.squeeze(1)
+        enhanced_context_text = enhanced_context_text.squeeze(1)
+        context_features = context_features.squeeze(1)
+        
+        # Concatenate enhanced contexts with original context
+        fused_features = torch.cat([
+            context_features,
+            enhanced_context_body,
+            enhanced_context_face,
+            enhanced_context_text
+        ], dim=1)
+        
+        # Output classification
+        output = self.fusion(fused_features)
+        
+        return output
