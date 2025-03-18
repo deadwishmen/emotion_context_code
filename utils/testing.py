@@ -6,6 +6,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader 
 from tqdm import tqdm 
 from utils.metrics import test_scikit_ap, test_emotic_vad, get_thresholds
+from captum.attr import FeatureAblation
 
 import matplotlib.pyplot as plt
 
@@ -35,6 +36,11 @@ def test_disc(models, device, data_loader, num_images):
         model_face.eval()
         model_text.eval()
         fusion_model.eval()
+
+        ablation = FeatureAblation(fusion_model)  # Khởi tạo Feature Ablation
+        all_importance = []
+        print("Starting testing with Feature Ablation...")
+
         indx = 0
 
         print ('starting testing')
@@ -60,9 +66,26 @@ def test_disc(models, device, data_loader, num_images):
             pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
             pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
             
+            attr = ablation.attribute((pred_context, pred_body, pred_face, pred_text), target=0)  
+            attr_numpy = [a.cpu().numpy() for a in attr]  
+            all_importance.append([a.mean() for a in attr_numpy])  
+
             cat_preds[ indx : (indx + pred_cat.shape[0]), :] = pred_cat.to("cpu").data.numpy()
             cat_labels[ indx : (indx + labels_cat.shape[0]), :] = labels_cat.to("cpu").data.numpy()
             indx = indx + pred_cat.shape[0]
+
+
+    all_importance = np.array(all_importance)
+    feature_importance = all_importance.mean(axis=0)
+
+    feature_groups = ["Context", "Body", "Face", "Text"]
+    plt.figure(figsize=(8, 5))
+    plt.bar(feature_groups, feature_importance, color=["blue", "orange", "green", "red"])
+    plt.xlabel("Feature Groups")
+    plt.ylabel("Importance")
+    plt.title("Feature Ablation on Test Set")
+    plt.show()
+
 
     cat_preds = cat_preds.transpose()
     cat_labels = cat_labels.transpose()
