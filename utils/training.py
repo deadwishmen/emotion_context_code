@@ -88,6 +88,7 @@ def train_disc(epochs,
       running_loss += loss.item()
 
       loss.backward()
+      torch.nn.utils.clip_grad_norm_(fusion_model.parameters(), max_norm=1.0) # gradient clipping
       opt.step()
 
       train_cat_preds[ indx : (indx + pred_cat.shape[0]), :] = pred_cat.to("cpu").data.numpy()

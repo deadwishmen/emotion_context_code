@@ -45,7 +45,7 @@ def test_disc(models, device, data_loader, num_images):
 
         print ('starting testing')
 
-        for images_context, images_body, images_face, tokenizer_text, labels_cat, labels_cont in iter(data_loader):
+        for images_context, images_body, images_face, tokenizer_text, labels_cat, labels_cont in tqdm(iter(data_loader), total=len(data_loader)):
 
             images_context = images_context.to(device)
             images_body = images_body.to(device)
@@ -68,8 +68,7 @@ def test_disc(models, device, data_loader, num_images):
             
             attr = ablation.attribute((pred_context, pred_body, pred_face, pred_text), target=0)  
             attr_numpy = [a.cpu().numpy() for a in attr]  
-            all_importance.append([a.mean() for a in attr_numpy])  
-
+            all_importance.append([a.mean() for a in attr_numpy]) 
             cat_preds[ indx : (indx + pred_cat.shape[0]), :] = pred_cat.to("cpu").data.numpy()
             cat_labels[ indx : (indx + labels_cat.shape[0]), :] = labels_cat.to("cpu").data.numpy()
             indx = indx + pred_cat.shape[0]
@@ -84,7 +83,7 @@ def test_disc(models, device, data_loader, num_images):
     plt.xlabel("Feature Groups")
     plt.ylabel("Importance")
     plt.title("Feature Ablation on Test Set")
-    plt.show()
+    plt.savefig("feature_ablation.png")
 
 
     cat_preds = cat_preds.transpose()
