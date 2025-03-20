@@ -2,6 +2,7 @@ from abc import update_abstractmethods
 from math import gamma
 import torch.nn as nn
 import torch
+import timm 
 import torch.optim as optim
 import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
@@ -82,8 +83,11 @@ def train(pars):
     "swin-b": swin_v2_b,
     "vit": vit_b_16
   }
+  if conbine == "q_former":
+    model_context = timm.create_model('vit_base_patch16_224', pretrained=True)
+    model_context.forward_features = model_context.forward  
+  else: model_context = resnet50_place365(pretrained = True)
 
-  model_context = resnet50_place365(pretrained = True)
   print(summary(model_context, (3,224,224), device="cpu"))
   model_face = cnn_face(pretrained = True)
   
