@@ -18,7 +18,7 @@ from dataset.data_loader import load_data, set_normalization_and_transforms
 from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss, FocalLoss
 from utils.training import train_disc
 from utils.testing import test_disc
-from model.vit_tokens import get_vit_for_tokens
+
 
 
 def str2bool(v):
@@ -59,7 +59,7 @@ def train(pars):
   model_path = args.save_model
   loss_function = args.loss
   model_text = args.model_text
-
+  num_context_features = 0
   context_norm, body_norm, face_norm, train_transform, test_transform, face_train_transform, face_test_transform = set_normalization_and_transforms(choices_model_body)
 
   train_loader, val_loader, test_loader, cat2ind, ind2cat, train_length, val_length, test_length = load_data(
@@ -84,9 +84,8 @@ def train(pars):
     "vit": vit_b_16
   }
   if conbine == "q_former":
-    num_context_features = 0
-    model_context = get_vit_for_tokens('vit_b_16', pretrained=True)
-  else:
+    model_context = vit_b_16(pretrained = True)
+  else: 
     model_context = resnet50_place365(pretrained = True)
     print(summary(model_context, (3,224,224), device="cpu"))
     num_context_features = list(model_context.children())[-1].in_features

@@ -60,16 +60,15 @@ def test_disc(models, device, data_loader, num_images, conbine = False):
 
 
 
-            pred_context = model_context(images_context)
-            pred_body = model_body(images_body)
+
+            pred_body = model_body(images_body)[:, 0]
             pred_face = model_face(images_face)
             if conbine == "q_former":
                 pred_text = model_text(**tokenizer_text).last_hidden_state
-                pred_context = model_context.encoder(images_context)
+                pred_context = model_context(images_context)[:, 1:]
             else:
                 pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
-                pred_context = model_context(images_context)
-                
+                pred_context = model_context.encoder(images_context)
             pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
             
             attr = ablation.attribute((pred_context, pred_body, pred_face, pred_text), target=0)  

@@ -287,7 +287,7 @@ class VisionTransformer(nn.Module):
         x = self.encoder(x)
 
         # Classifier "token" as used by standard language architectures
-        x = x[:, 0]
+        # x = x[:, 0]
         
         return x
 
