@@ -21,7 +21,8 @@ def train_disc(epochs,
               val_length = None,
               train_loader = None,
               val_loader = None,
-              device = 'cpu'):
+              device = 'cpu',
+              conbine =  False):
 
   if not os.path.exists(model_path):
     os.makedirs(model_path)
@@ -77,7 +78,10 @@ def train_disc(epochs,
       pred_context = model_context(images_context)
       pred_body = model_body(images_body)
       pred_face = model_face(images_face)
-      pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
+      if conbine == "q_former":
+        pred_text = model_text(**tokenizer_text).last_hidden_state
+      else:
+        pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
 
 
 
@@ -134,7 +138,10 @@ def train_disc(epochs,
         pred_context = model_context(images_context)
         pred_body = model_body(images_body)
         pred_face = model_face(images_face)
-        pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
+        if conbine == "q_former":
+          pred_text = model_text(**tokenizer_text).last_hidden_state
+        else:
+          pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
 
 
 

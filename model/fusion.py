@@ -617,12 +617,6 @@ class QFormer(nn.Module):
         text_embeddings: (batch_size, num_tokens, embed_dim)  # Đặc trưng văn bản từ BERT
         """
 
-        image_features = image_features.view(-1, self.num_context_features)
-        text_embeddings = text_embeddings.view(-1, self.num_text_features)
-
-        image_features = self.fc_context(image_features)
-        text_embeddings = self.fc_text(text_embeddings)
-
 
         batch_size = image_features.shape[0]
         

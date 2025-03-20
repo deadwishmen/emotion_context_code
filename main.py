@@ -183,7 +183,8 @@ def train(pars):
             val_length = val_length,
             train_loader = train_loader,
             val_loader = val_loader,
-            device = device
+            device = device,
+            conbine = conbine
             )
 
   f, [[ax1, ax2], [ax3, ax4]] = plt.subplots(2, 2, figsize = (15, 10))
@@ -202,7 +203,7 @@ def train(pars):
 
 
 
-  test_map = test_disc([model_context, model_body, model_face, model_text, fusion_model], device, test_loader, test_length)
+  test_map = test_disc([model_context, model_body, model_face, model_text, fusion_model], device, test_loader, test_length, conbine = conbine)
   print ('testing mAP=%.4f' %(test_map))
 
 if __name__=='__main__':
