@@ -12,7 +12,7 @@ from model.resnet import resnet50V2, resnet50_place365
 from model.cnn_face import cnn_face
 from model.swin_transformer import swin_v2_t, swin_v2_s, swin_v2_b
 from model.vit import vit_b_16
-from model.fusion import FusionModel, FusionConcatModel, FusionAttentionModel, TransformerFusionModel, FusionAttnModel, DualPathAttentionFusion
+from model.fusion import FusionModel, FusionConcatModel, TransformerFusionModel, DualPathAttentionFusion, QFormer
 from dataset.data_loader import load_data, set_normalization_and_transforms
 from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss, FocalLoss
 from utils.training import train_disc
@@ -42,7 +42,7 @@ def get_arg():
   parser.add_argument('--weight_decay', default=5e-4, type=float)
   parser.add_argument('--step_size', default=7, type=int)
   parser.add_argument('--gamma', default=0.1, type=float)
-  parser.add_argument('--conbine', default='concat',choices=['concat', 'sum', 'avg', 'transformer', 'adaptive', 'attention'], type=str)
+  parser.add_argument('--conbine', default='concat',choices=['concat', 'sum', 'avg', 'q_former' ,'transformer', 'adaptive', 'attention'], type=str)
   parser.add_argument('--model_text', default='distilbert', choices = ['distilbert', 'bert', 'roberta', 'deberta'], type=str)
   pars = parser.parse_args()
   return pars
@@ -135,6 +135,8 @@ def train(pars):
     fusion_model = TransformerFusionModel(num_context_features, num_body_features, num_face_features, num_text_features) 
   elif conbine == "attention":
     fusion_model = DualPathAttentionFusion(num_context_features, num_body_features, num_face_features, num_text_features)
+  elif conbine == "q_former":
+    fusion_model = QFormer(num_context_features, num_body_features, num_face_features, num_text_features) 
 
   for param in fusion_model.parameters():
     param.requires_grad = True
