@@ -18,7 +18,7 @@ from dataset.data_loader import load_data, set_normalization_and_transforms
 from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss, FocalLoss
 from utils.training import train_disc
 from utils.testing import test_disc
-
+import torchvision.models as models
 
 
 def str2bool(v):
@@ -84,8 +84,7 @@ def train(pars):
     "vit": vit_b_16
   }
   if conbine == "q_former":
-    model_context = timm.create_model('vit_base_patch16_224', pretrained=True)
-    model_context.forward_features = model_context.forward  
+    model_context = models.vit_b_16(weights=models.ViT_B_16_Weights.IMAGENET1K_V1)
   else: model_context = resnet50_place365(pretrained = True)
 
   print(summary(model_context, (3,224,224), device="cpu"))

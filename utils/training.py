@@ -80,7 +80,9 @@ def train_disc(epochs,
       pred_face = model_face(images_face)
       if conbine == "q_former":
         pred_text = model_text(**tokenizer_text).last_hidden_state
+        pred_context = model_context.encoder(images_context)
       else:
+        pred_context = model_context(images_context)
         pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
 
 
@@ -140,8 +142,10 @@ def train_disc(epochs,
         pred_face = model_face(images_face)
         if conbine == "q_former":
           pred_text = model_text(**tokenizer_text).last_hidden_state
+          pred_context = model_context.encoder(images_context)
         else:
           pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
+          pred_context = model_context(images_context)
 
 
 
