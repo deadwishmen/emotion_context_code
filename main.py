@@ -18,7 +18,7 @@ from dataset.data_loader import load_data, set_normalization_and_transforms
 from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss, FocalLoss
 from utils.training import train_disc
 from utils.testing import test_disc
-import torchvision.models as models
+from model.vit_tokens import get_vit_for_tokens
 
 
 def str2bool(v):
@@ -84,10 +84,12 @@ def train(pars):
     "vit": vit_b_16
   }
   if conbine == "q_former":
-    model_context = models.vit_b_16(weights=models.ViT_B_16_Weights.IMAGENET1K_V1)
-  else: model_context = resnet50_place365(pretrained = True)
-
-  print(summary(model_context, (3,224,224), device="cpu"))
+    num_context_features = 0
+    model_context = get_vit_for_tokens('vit_b_16', pretrained=True)
+  else:
+    model_context = resnet50_place365(pretrained = True)
+    print(summary(model_context, (3,224,224), device="cpu"))
+    num_context_features = list(model_context.children())[-1].in_features
   model_face = cnn_face(pretrained = True)
   
   model_body = model_dict.get(choices_model_body, None)
@@ -105,7 +107,7 @@ def train(pars):
   print(model_text)
 
   print(model_body)
-  num_context_features = list(model_context.children())[-1].in_features
+  
   
   last_layer = list(model_body.children())[-1]  # Lấy lớp cuối cùng
 

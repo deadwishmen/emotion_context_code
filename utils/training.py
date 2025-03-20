@@ -75,12 +75,11 @@ def train_disc(epochs,
 
       opt.zero_grad()
 
-      pred_context = model_context(images_context)
       pred_body = model_body(images_body)
       pred_face = model_face(images_face)
       if conbine == "q_former":
         pred_text = model_text(**tokenizer_text).last_hidden_state
-        pred_context = model_context.encoder(images_context)
+        pred_context = model_context(images_context)[:, 1:]
       else:
         pred_context = model_context(images_context)
         pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
@@ -137,12 +136,11 @@ def train_disc(epochs,
         tokenizer_text = {key: val.to(device) for key, val in tokenizer_text.items()}
         labels_cat = labels_cat.to(device)
 
-        pred_context = model_context(images_context)
         pred_body = model_body(images_body)
         pred_face = model_face(images_face)
         if conbine == "q_former":
           pred_text = model_text(**tokenizer_text).last_hidden_state
-          pred_context = model_context.encoder(images_context)
+          pred_context = model_context(images_context)[:, 1:]
         else:
           pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
           pred_context = model_context(images_context)
