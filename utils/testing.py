@@ -61,7 +61,7 @@ def test_disc(models, device, data_loader, num_images, conbine = False):
 
 
 
-            pred_body = model_body(images_body)[:, 0]
+            pred_body = model_body(images_body)
             pred_face = model_face(images_face)
             if conbine == "q_former":
                 pred_text = model_text(**tokenizer_text).last_hidden_state
