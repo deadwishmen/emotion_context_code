@@ -19,8 +19,10 @@ class Qformer(nn.Module):
         self.query_tokens = nn.Parameter(torch.zeros(1, num_query_tokens, embed_dim))
         self.qformer_config = BertConfig.from_pretrained("bert-base-uncased")
         self.qformer_config.encoder_width = embed_dim
+        
         # Add cross-attention layers
         self.qformer_config.add_cross_attention = True
+        self.qformer_config.is_decoder = True
         self.qformer_config.cross_attention_freq = cross_attention_freq
         self.qformer_config.query_length = num_query_tokens
         
@@ -48,33 +50,30 @@ class Qformer(nn.Module):
         query_tokens = self.query_tokens.expand(batch_size, -1, -1)
         
         # Prepare inputs for Qformer
-        # image_embeds được sử dụng làm encoder_hidden_states (cross-attention)
-        # query_tokens được sử dụng làm inputs_embeds
-        
         outputs = self.qformer(
             inputs_embeds=query_tokens,
             encoder_hidden_states=image_embeds,
-            encoder_attention_mask=None,  # Không cần mask cho image
+            encoder_attention_mask=None,
             return_dict=True,
+            output_hidden_states=True,  # Đảm bảo hidden_states được trả về
         )
+        
+        # Sửa lỗi: BertLMHeadModel trả về CausalLMOutputWithCrossAttentions
+        # nên chúng ta cần truy cập hidden_states thay vì last_hidden_state
+        query_output = outputs.hidden_states[-1]  # Lấy hidden state của layer cuối cùng
         
         # Nếu có text, thì thực hiện cross-attention với text
         if text_embeds is not None:
-            # Lấy query embeddings từ output đầu tiên
-            query_output = outputs.last_hidden_state
-            
             # Cross-attention với text
             text_outputs = self.qformer(
                 inputs_embeds=query_output,
                 encoder_hidden_states=text_embeds,
                 encoder_attention_mask=text_attention_mask,
                 return_dict=True,
+                output_hidden_states=True,
             )
             
             # Final query features sau khi qua cả image và text
-            query_output = text_outputs.last_hidden_state
-        else:
-            # Chỉ sử dụng features từ image
-            query_output = outputs.last_hidden_state
+            query_output = text_outputs.hidden_states[-1]
             
         return query_output

@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from model.transformer import CrossAttention
 
-from model.qformer import QFormer
+from model.qformer import Qformer
 
 
 
@@ -642,11 +642,11 @@ class DualPathAttentionFusion(nn.Module):
 
 
 class QFormer(nn.Module):
-    def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features, embed_dim=256, num_heads=8, num_layers=6, num_queries=32):
+    def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features, embed_dim=768, num_heads=8, num_layers=6, num_queries=32):
         super().__init__()
 
 
-        self.qformer = QFormer()
+        self.qformer = Qformer(embed_dim = embed_dim)
         
         # Feedforward Layer
         self.mlp = nn.Sequential(
@@ -661,8 +661,8 @@ class QFormer(nn.Module):
         text_embeddings: (batch_size, num_tokens, embed_dim)  # Đặc trưng văn bản từ BERT
         """
         query_output = self.qformer(image_features, text_embeddings)
-        
+        pooled_output = query_output.mean(dim=1)  # [batch_size, embed_dim]
         # MLP để xử lý đầu ra
-        output = self.mlp()
+        output = self.mlp(pooled_output)
         
         return output  # (batch_size, num_queries, embed_dim)
