@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from model.transformer import CrossAttention
 
+from model.qformer import QFormer
+
 
 
 
@@ -580,29 +582,71 @@ class DualPathAttentionFusion(nn.Module):
 
 
 
+# class QFormer(nn.Module):
+#     def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features, embed_dim=256, num_heads=8, num_layers=6, num_queries=32):
+#         super().__init__()
+
+
+#         self.num_context_features = num_context_features
+#         self.num_text_features = num_text_features
+
+#         self.fc_context = nn.Linear(num_context_features, 256)
+#         self.fc_text = nn.Linear(num_text_features, 256)
+        
+#         # Query Tokens (Học thông tin từ ảnh và văn bản)
+#         self.query_tokens = nn.Parameter(torch.randn(1, num_queries, embed_dim))
+        
+#         # Transformer Encoder (Giống BERT nhưng có Cross-Attention)
+#         encoder_layer = nn.TransformerEncoderLayer(d_model=embed_dim, nhead=num_heads, batch_first=True)
+#         self.self_attn = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        
+#         # Cross-Attention giữa Query Tokens & Ảnh
+#         self.image_cross_attn = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
+        
+#         # Cross-Attention giữa Query Tokens & Văn bản
+#         self.text_cross_attn = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
+        
+#         # Feedforward Layer
+#         self.mlp = nn.Sequential(
+#             nn.Linear(embed_dim, embed_dim),
+#             nn.ReLU(),
+#             nn.Linear(embed_dim, 26)
+#         )
+
+#     def forward(self, image_features, x_body, x_face, text_embeddings):
+#         """
+#         image_features: (batch_size, num_patches, embed_dim)  # Đặc trưng ảnh từ ViT
+#         text_embeddings: (batch_size, num_tokens, embed_dim)  # Đặc trưng văn bản từ BERT
+#         """
+
+
+#         batch_size = image_features.shape[0]
+        
+#         # Query Tokens (Nhân bản cho mỗi batch)
+#         queries = self.query_tokens.expand(batch_size, -1, -1)
+        
+#         # Self-Attention giữa các Query Tokens
+#         queries = self.self_attn(queries)
+        
+#         # Cross-Attention giữa Query Tokens và Ảnh
+#         queries, _ = self.image_cross_attn(queries, image_features, image_features)
+        
+#         # Cross-Attention giữa Query Tokens và Văn bản
+#         queries, _ = self.text_cross_attn(queries, text_embeddings, text_embeddings)
+        
+#         # MLP để xử lý đầu ra
+#         output = self.mlp(queries)
+        
+#         return output  # (batch_size, num_queries, embed_dim)
+
+
+
 class QFormer(nn.Module):
     def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features, embed_dim=256, num_heads=8, num_layers=6, num_queries=32):
         super().__init__()
 
 
-        self.num_context_features = num_context_features
-        self.num_text_features = num_text_features
-
-        self.fc_context = nn.Linear(num_context_features, 256)
-        self.fc_text = nn.Linear(num_text_features, 256)
-        
-        # Query Tokens (Học thông tin từ ảnh và văn bản)
-        self.query_tokens = nn.Parameter(torch.randn(1, num_queries, embed_dim))
-        
-        # Transformer Encoder (Giống BERT nhưng có Cross-Attention)
-        encoder_layer = nn.TransformerEncoderLayer(d_model=embed_dim, nhead=num_heads, batch_first=True)
-        self.self_attn = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
-        
-        # Cross-Attention giữa Query Tokens & Ảnh
-        self.image_cross_attn = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
-        
-        # Cross-Attention giữa Query Tokens & Văn bản
-        self.text_cross_attn = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
+        self.qformer = QFormer()
         
         # Feedforward Layer
         self.mlp = nn.Sequential(
@@ -611,28 +655,14 @@ class QFormer(nn.Module):
             nn.Linear(embed_dim, 26)
         )
 
-    def forward(self, image_features, *args, text_embeddings):
+    def forward(self, image_features, x_body, x_face, text_embeddings):
         """
         image_features: (batch_size, num_patches, embed_dim)  # Đặc trưng ảnh từ ViT
         text_embeddings: (batch_size, num_tokens, embed_dim)  # Đặc trưng văn bản từ BERT
         """
-
-
-        batch_size = image_features.shape[0]
-        
-        # Query Tokens (Nhân bản cho mỗi batch)
-        queries = self.query_tokens.expand(batch_size, -1, -1)
-        
-        # Self-Attention giữa các Query Tokens
-        queries = self.self_attn(queries)
-        
-        # Cross-Attention giữa Query Tokens và Ảnh
-        queries, _ = self.image_cross_attn(queries, image_features, image_features)
-        
-        # Cross-Attention giữa Query Tokens và Văn bản
-        queries, _ = self.text_cross_attn(queries, text_embeddings, text_embeddings)
+        query_output = self.qformer(image_features, text_embeddings)
         
         # MLP để xử lý đầu ra
-        output = self.mlp(queries)
+        output = self.mlp()
         
         return output  # (batch_size, num_queries, embed_dim)
