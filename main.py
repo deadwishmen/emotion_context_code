@@ -43,6 +43,7 @@ def get_arg():
   parser.add_argument('--weight_decay', default=5e-4, type=float)
   parser.add_argument('--step_size', default=7, type=int)
   parser.add_argument('--gamma', default=0.1, type=float)
+  parser.add_argument('--xai', type=str2bool)
   parser.add_argument('--conbine', default='concat',choices=['concat', 'sum', 'avg', 'q_former' ,'transformer', 'adaptive', 'attention'], type=str)
   parser.add_argument('--model_text', default='distilbert', choices = ['distilbert', 'bert', 'roberta', 'deberta'], type=str)
   pars = parser.parse_args()
@@ -60,6 +61,7 @@ def train(pars):
   loss_function = args.loss
   model_text = args.model_text
   num_context_features = 0
+  xai = args.xai
   context_norm, body_norm, face_norm, train_transform, test_transform, face_train_transform, face_test_transform = set_normalization_and_transforms(choices_model_body)
 
   train_loader, val_loader, test_loader, cat2ind, ind2cat, train_length, val_length, test_length = load_data(
@@ -203,7 +205,7 @@ def train(pars):
 
 
 
-  test_map = test_disc([model_context, model_body, model_face, model_text, fusion_model], device, test_loader, test_length, conbine = conbine)
+  test_map = test_disc([model_context, model_body, model_face, model_text, fusion_model], device, test_loader, test_length, conbine = conbine, xai = xai)
   print ('testing mAP=%.4f' %(test_map))
 
 if __name__=='__main__':

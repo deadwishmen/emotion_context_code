@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 
 
-def test_disc(models, device, data_loader, num_images, conbine = False):
+def test_disc(models, device, data_loader, num_images, conbine = False, xai = False):
 
     model_context, model_body, model_face, model_text, fusion_model = models
     cat_preds = np.zeros((num_images, 26))
@@ -71,24 +71,26 @@ def test_disc(models, device, data_loader, num_images, conbine = False):
                 pred_context = model_context.encoder(images_context)
             pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
             
-            attr = ablation.attribute((pred_context, pred_body, pred_face, pred_text), target=0)  
-            attr_numpy = [a.cpu().numpy() for a in attr]  
-            all_importance.append([a.mean() for a in attr_numpy]) 
+            if xai:
+                attr = ablation.attribute((pred_context, pred_body, pred_face, pred_text), target=0)  
+                attr_numpy = [a.cpu().numpy() for a in attr]  
+                all_importance.append([a.mean() for a in attr_numpy]) 
+
             cat_preds[ indx : (indx + pred_cat.shape[0]), :] = pred_cat.to("cpu").data.numpy()
             cat_labels[ indx : (indx + labels_cat.shape[0]), :] = labels_cat.to("cpu").data.numpy()
             indx = indx + pred_cat.shape[0]
 
+    if xai:
+        all_importance = np.array(all_importance)
+        feature_importance = all_importance.mean(axis=0)
 
-    all_importance = np.array(all_importance)
-    feature_importance = all_importance.mean(axis=0)
-
-    feature_groups = ["Context", "Body", "Face", "Text"]
-    plt.figure(figsize=(8, 5))
-    plt.bar(feature_groups, feature_importance, color=["blue", "orange", "green", "red"])
-    plt.xlabel("Feature Groups")
-    plt.ylabel("Importance")
-    plt.title("Feature Ablation on Test Set")
-    plt.savefig("feature_ablation.png")
+        feature_groups = ["Context", "Body", "Face", "Text"]
+        plt.figure(figsize=(8, 5))
+        plt.bar(feature_groups, feature_importance, color=["blue", "orange", "green", "red"])
+        plt.xlabel("Feature Groups")
+        plt.ylabel("Importance")
+        plt.title("Feature Ablation on Test Set")
+        plt.savefig("feature_ablation.png")
 
 
     cat_preds = cat_preds.transpose()
