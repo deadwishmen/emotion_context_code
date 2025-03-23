@@ -652,6 +652,7 @@ class QFormer(nn.Module):
         self.mlp = nn.Sequential(
             nn.Linear(embed_dim, embed_dim),
             nn.ReLU(),
+            nn.Dropout(p=0.5),
             nn.Linear(embed_dim, 26)
         )
 
