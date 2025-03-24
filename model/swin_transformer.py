@@ -714,10 +714,10 @@ class SwinTransformer(nn.Module):
 
     def forward(self, x):
         x = self.features(x)
-        x = self.norm(x)
-        x = self.permute(x)
-        x = self.avgpool(x)
-        x = self.flatten(x)
+        # x = self.norm(x)
+        # x = self.permute(x)
+        # x = self.avgpool(x)
+        # x = self.flatten(x)
         # x = self.head(x)
         return x
 

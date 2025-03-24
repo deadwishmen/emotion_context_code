@@ -647,17 +647,18 @@ class QFormer(nn.Module):
 
 
         self.qformer = Qformer()
-        
-        
 
-    def forward(self, image_features, x_body, x_face, text_features):
+
+    def forward(self, x_context, x_body, x_face, text_features):
         """
         image_features: (batch_size, num_patches, embed_dim)  # Đặc trưng ảnh từ ViT
         text_embeddings: (batch_size, num_tokens, embed_dim)  # Đặc trưng văn bản từ BERT
         """
+        print(x_body.shape)
+        combined_visual = torch.cat([x_context, x_body], dim=1)
         emotion_logits, pooled_features = self.qformer(
-            image_features, 
-            text_features, 
+            combined_visual, 
+            text_features,
         )
         
         return emotion_logits  
