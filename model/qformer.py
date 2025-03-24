@@ -4,14 +4,14 @@ from transformers import BertConfig, BertLMHeadModel
 
 class Qformer(nn.Module):
     """
-    Qformer module that processes visual features from ViT-L and combines them with text features
-    for emotion recognition in context as shown in the diagram.
+    Qformer module that processes visual features and combines them with text features
+    for emotion recognition in context.
     """
     def __init__(
         self,
-        vision_width=1024,      # ViT-L output dimension
+        vision_width=768,       # Sửa thành 768 dựa trên lỗi
         text_width=768,         # Language model embedding dimension
-        num_query_tokens=32,    # Number of query tokens as shown in the Q circles in diagram
+        num_query_tokens=32,    # Number of query tokens
         cross_attention_freq=2,
         qformer_hidden_dropout_prob=0.1,
         qformer_attention_probs_dropout_prob=0.1,
@@ -42,14 +42,19 @@ class Qformer(nn.Module):
         # Initialize BERT model with LM head for Qformer
         self.qformer = BertLMHeadModel(self.qformer_config)
         
-        # Projection layers shown in the diagram
-        # For vision features Ev
-        self.vision_proj = nn.Linear(vision_width, self.qformer_config.hidden_size)
+        # Projection layers shown in the diagram - Điều chỉnh kích thước đầu vào
+        # Chỉ cần projection nếu kích thước khác với hidden_size của BERT
+        if vision_width != self.qformer_config.hidden_size:
+            self.vision_proj = nn.Linear(vision_width, self.qformer_config.hidden_size)
+        else:
+            self.vision_proj = nn.Identity()
+            
+        if text_width != self.qformer_config.hidden_size:
+            self.text_proj = nn.Linear(text_width, self.qformer_config.hidden_size)
+        else:
+            self.text_proj = nn.Identity()
         
-        # For text features
-        self.text_proj = nn.Linear(text_width, self.qformer_config.hidden_size)
-        
-        # Cross-modal feed forward projections (Feed Forward blocks in diagram)
+        # Cross-modal feed forward projections
         self.cross_modal_text_transform = nn.Linear(self.qformer_config.hidden_size, self.qformer_config.hidden_size)
         self.cross_modal_image_transform = nn.Linear(self.qformer_config.hidden_size, self.qformer_config.hidden_size)
         
@@ -61,13 +66,13 @@ class Qformer(nn.Module):
         Process image and text features through Qformer
         
         Args:
-            image_features: Visual features from ViT-L [batch_size, seq_len_i, vision_width]
-            text_features: Text features from language model [batch_size, seq_len_t, text_width]
+            image_features: Visual features [batch_size, seq_len_i, vision_width]
+            text_features: Text features [batch_size, seq_len_t, text_width]
             text_attention_mask: Attention mask for text [batch_size, seq_len_t]
         """
         batch_size = image_features.shape[0]
         
-        # Project image features
+        # Project image features if needed
         image_features = self.vision_proj(image_features)
         
         # Expand query tokens to batch dimension
@@ -88,9 +93,9 @@ class Qformer(nn.Module):
         # Apply cross-modal transform for image pathway
         query_image = self.cross_modal_image_transform(image_query_output)
         
-        # Process with text if available (Cross Attention block in diagram)
+        # Process with text if available
         if text_features is not None:
-            # Project text features
+            # Project text features if needed
             text_features = self.text_proj(text_features)
             
             # Cross-attention with text
@@ -108,7 +113,7 @@ class Qformer(nn.Module):
             # Apply cross-modal transform for text pathway
             query_text = self.cross_modal_text_transform(text_query_output)
             
-            # Combine both pathways (as shown in the diagram with the merge of both feed forward outputs)
+            # Combine both pathways
             combined_query = query_image + query_text
         else:
             # Only use image pathway if no text is provided
@@ -121,4 +126,3 @@ class Qformer(nn.Module):
         emotion_logits = self.fc(pooled_output)
         
         return emotion_logits, pooled_output
-
