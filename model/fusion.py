@@ -646,24 +646,18 @@ class QFormer(nn.Module):
         super().__init__()
 
 
-        self.qformer = Qformer(embed_dim = embed_dim)
+        self.qformer = Qformer()
         
-        # Feedforward Layer
-        self.mlp = nn.Sequential(
-            nn.Linear(embed_dim, embed_dim),
-            nn.ReLU(),
-            nn.Dropout(p=0.5),
-            nn.Linear(embed_dim, 26)
-        )
+        
 
-    def forward(self, image_features, x_body, x_face, text_embeddings):
+    def forward(self, image_features, x_body, x_face, text_features):
         """
         image_features: (batch_size, num_patches, embed_dim)  # Đặc trưng ảnh từ ViT
         text_embeddings: (batch_size, num_tokens, embed_dim)  # Đặc trưng văn bản từ BERT
         """
-        query_output = self.qformer(image_features, text_embeddings)
-        pooled_output = query_output.mean(dim=1)  # [batch_size, embed_dim]
-        # MLP để xử lý đầu ra
-        output = self.mlp(pooled_output)
+        emotion_logits, pooled_features = self.qformer(
+            image_features, 
+            text_features, 
+        )
         
-        return output  # (batch_size, num_queries, embed_dim)
+        return emotion_logits  

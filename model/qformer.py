@@ -1,32 +1,40 @@
 import torch
 import torch.nn as nn
-from transformers import BertConfig, BertLMHeadModel, BertTokenizer
+from transformers import BertConfig, BertLMHeadModel
 
 class Qformer(nn.Module):
+    """
+    Qformer module that processes visual features from ViT-L and combines them with text features
+    for emotion recognition in context as shown in the diagram.
+    """
     def __init__(
         self,
-        num_query_tokens=32,
-        cross_attention_freq=32,
-        embed_dim=768,
+        vision_width=1024,      # ViT-L output dimension
+        text_width=768,         # Language model embedding dimension
+        num_query_tokens=32,    # Number of query tokens as shown in the Q circles in diagram
+        cross_attention_freq=2,
         qformer_hidden_dropout_prob=0.1,
         qformer_attention_probs_dropout_prob=0.1,
         qformer_intermediate_size=3072,
     ):
         super().__init__()
         
-        # Initialize the Qformer (BERT-based model with cross-attention)
+        # Initialize query tokens (Q in the diagram)
         self.num_query_tokens = num_query_tokens
-        self.query_tokens = nn.Parameter(torch.zeros(1, num_query_tokens, embed_dim))
-        self.qformer_config = BertConfig.from_pretrained("bert-base-uncased")
-        self.qformer_config.encoder_width = embed_dim
+        self.query_tokens = nn.Parameter(torch.zeros(1, num_query_tokens, vision_width))
+        nn.init.normal_(self.query_tokens, std=0.02)
         
-        # Add cross-attention layers
+        # Initialize Qformer configuration
+        self.qformer_config = BertConfig.from_pretrained("bert-base-uncased")
+        self.qformer_config.encoder_width = vision_width
+        
+        # Set up cross-attention
         self.qformer_config.add_cross_attention = True
         self.qformer_config.is_decoder = True
         self.qformer_config.cross_attention_freq = cross_attention_freq
         self.qformer_config.query_length = num_query_tokens
         
-        # Adjust dropout rates
+        # Adjust dropout parameters
         self.qformer_config.hidden_dropout_prob = qformer_hidden_dropout_prob
         self.qformer_config.attention_probs_dropout_prob = qformer_attention_probs_dropout_prob
         self.qformer_config.intermediate_size = qformer_intermediate_size
@@ -34,46 +42,83 @@ class Qformer(nn.Module):
         # Initialize BERT model with LM head for Qformer
         self.qformer = BertLMHeadModel(self.qformer_config)
         
-        # Initialize query tokens with random values
-        nn.init.normal_(self.query_tokens, std=0.02)
+        # Projection layers shown in the diagram
+        # For vision features Ev
+        self.vision_proj = nn.Linear(vision_width, self.qformer_config.hidden_size)
         
-    def forward(self, image_embeds, text_embeds=None, text_attention_mask=None):
+        # For text features
+        self.text_proj = nn.Linear(text_width, self.qformer_config.hidden_size)
+        
+        # Cross-modal feed forward projections (Feed Forward blocks in diagram)
+        self.cross_modal_text_transform = nn.Linear(self.qformer_config.hidden_size, self.qformer_config.hidden_size)
+        self.cross_modal_image_transform = nn.Linear(self.qformer_config.hidden_size, self.qformer_config.hidden_size)
+        
+        # Final output projection for emotion recognition
+        self.fc = nn.Linear(self.qformer_config.hidden_size, 26)  # Assuming 7 emotion classes
+        
+    def forward(self, image_features, text_features=None, text_attention_mask=None):
         """
+        Process image and text features through Qformer
+        
         Args:
-            image_embeds (torch.Tensor): Output từ vision encoder [batch_size, seq_len_i, embed_dim]
-            text_embeds (torch.Tensor, optional): Output từ text encoder [batch_size, seq_len_t, embed_dim]
-            text_attention_mask (torch.Tensor, optional): Attention mask cho text [batch_size, seq_len_t]
+            image_features: Visual features from ViT-L [batch_size, seq_len_i, vision_width]
+            text_features: Text features from language model [batch_size, seq_len_t, text_width]
+            text_attention_mask: Attention mask for text [batch_size, seq_len_t]
         """
-        batch_size = image_embeds.shape[0]
+        batch_size = image_features.shape[0]
         
-        # Repeat query tokens for each example in batch
+        # Project image features
+        image_features = self.vision_proj(image_features)
+        
+        # Expand query tokens to batch dimension
         query_tokens = self.query_tokens.expand(batch_size, -1, -1)
         
-        # Prepare inputs for Qformer
+        # Self-attention stage
         outputs = self.qformer(
             inputs_embeds=query_tokens,
-            encoder_hidden_states=image_embeds,
-            encoder_attention_mask=None,
+            encoder_hidden_states=image_features,
+            encoder_attention_mask=None,  # No mask for image features
             return_dict=True,
-            output_hidden_states=True,  # Đảm bảo hidden_states được trả về
+            output_hidden_states=True,
         )
         
-        # Sửa lỗi: BertLMHeadModel trả về CausalLMOutputWithCrossAttentions
-        # nên chúng ta cần truy cập hidden_states thay vì last_hidden_state
-        query_output = outputs.hidden_states[-1]  # Lấy hidden state của layer cuối cùng
+        # Get query output from hidden states
+        image_query_output = outputs.hidden_states[-1]
         
-        # Nếu có text, thì thực hiện cross-attention với text
-        if text_embeds is not None:
-            # Cross-attention với text
+        # Apply cross-modal transform for image pathway
+        query_image = self.cross_modal_image_transform(image_query_output)
+        
+        # Process with text if available (Cross Attention block in diagram)
+        if text_features is not None:
+            # Project text features
+            text_features = self.text_proj(text_features)
+            
+            # Cross-attention with text
             text_outputs = self.qformer(
-                inputs_embeds=query_output,
-                encoder_hidden_states=text_embeds,
+                inputs_embeds=image_query_output,  # Use output from previous stage
+                encoder_hidden_states=text_features,
                 encoder_attention_mask=text_attention_mask,
                 return_dict=True,
                 output_hidden_states=True,
             )
             
-            # Final query features sau khi qua cả image và text
-            query_output = text_outputs.hidden_states[-1]
+            # Get text query output
+            text_query_output = text_outputs.hidden_states[-1]
             
-        return query_output
+            # Apply cross-modal transform for text pathway
+            query_text = self.cross_modal_text_transform(text_query_output)
+            
+            # Combine both pathways (as shown in the diagram with the merge of both feed forward outputs)
+            combined_query = query_image + query_text
+        else:
+            # Only use image pathway if no text is provided
+            combined_query = query_image
+        
+        # Mean pooling over query tokens
+        pooled_output = combined_query.mean(dim=1)
+        
+        # Final classification
+        emotion_logits = self.fc(pooled_output)
+        
+        return emotion_logits, pooled_output
+
