@@ -8,8 +8,8 @@ class Qformer(nn.Module):
         num_query_tokens=32,
         cross_attention_freq=32,
         embed_dim=768,
-        qformer_hidden_dropout_prob=0.5,
-        qformer_attention_probs_dropout_prob=0.2,
+        qformer_hidden_dropout_prob=0.1,
+        qformer_attention_probs_dropout_prob=0.1,
         qformer_intermediate_size=3072,
     ):
         super().__init__()
