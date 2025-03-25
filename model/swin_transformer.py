@@ -713,7 +713,8 @@ class SwinTransformer(nn.Module):
                     nn.init.zeros_(m.bias)
 
     def forward(self, x):
-        x = self.features(x)
+        x = self.features(x) # (7, 7, 768)
+        x = x.view(26, 7 * 7, 768) 
         # x = self.norm(x)
         # x = self.permute(x)
         # x = self.avgpool(x)
