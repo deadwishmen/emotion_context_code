@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from transformers import BertConfig, BertLMHeadModel
+from transformers import BertConfig, BertLMHeadModel, BertModel
 
 class Qformer(nn.Module):
     """
@@ -42,7 +42,8 @@ class Qformer(nn.Module):
         self.qformer_config.intermediate_size = qformer_intermediate_size
         
         # Initialize BERT model with LM head for Qformer
-        self.qformer = BertLMHeadModel(self.qformer_config)
+        # self.qformer = BertLMHeadModel(self.qformer_config)
+        self.qformer = BertModel(self.qformer_config)
         
 
         self.query_tokens = nn.Parameter(
@@ -125,15 +126,20 @@ class Qformer(nn.Module):
             # Apply cross-modal transform for text pathway
             query_text = self.cross_modal_text_transform(text_query_output)
             
+
+            query_image = query_image + image_query_output  # Residual on image pathway
+            query_text = query_text + text_query_output    # Residual on text pathway
             # Combine both pathways
-            combined_query = query_image + query_text
+            combined_query = torch.cat([query_image, query_text], dim = 1)
         else:
             # Only use image pathway if no text is provided
             combined_query = query_image
         combined_query = combined_query.transpose(1, 2)
-
+        
+        # Pooling and classification
         x = self.avgpool(combined_query)
         x = nn.ReLU()(self.flatten(x))
+        x = nn.Dropout(0.2)(x)
         # Final classification
         emotion_logits = self.fc(x)
         

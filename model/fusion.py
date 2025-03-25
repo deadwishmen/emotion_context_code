@@ -654,10 +654,12 @@ class QFormer(nn.Module):
         image_features: (batch_size, num_patches, embed_dim)  # Đặc trưng ảnh từ ViT
         text_embeddings: (batch_size, num_tokens, embed_dim)  # Đặc trưng văn bản từ BERT
         """
-        combined_visual = torch.cat([x_context, x_body], dim=1)
+
+        combined_visual = torch.cat([x_context, x_body], dim=1) # shape (batch, path_size, 768)
         emotion_logits, pooled_features = self.qformer(
             combined_visual, 
-            text_features,
+            text_features, # shape (batch, seq_len, 768)
         )
+
         
         return emotion_logits  
