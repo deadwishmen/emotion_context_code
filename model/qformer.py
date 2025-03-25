@@ -137,4 +137,4 @@ class Qformer(nn.Module):
         # Final classification
         emotion_logits = self.fc(x)
         
-        return emotion_logits
+        return emotion_logits, combined_query
