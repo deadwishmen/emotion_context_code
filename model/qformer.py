@@ -19,13 +19,15 @@ class Qformer(nn.Module):
     ):
         super().__init__()
         
+
+        
         # Initialize query tokens (Q in the diagram)
-        self.num_query_tokens = num_query_tokens
-        self.query_tokens = nn.Parameter(torch.zeros(1, num_query_tokens, vision_width))
-        nn.init.normal_(self.query_tokens, std=0.02)
+        # self.num_query_tokens = num_query_tokens
+        # self.query_tokens = nn.Parameter(torch.zeros(1, num_query_tokens, vision_width))
+        # nn.init.normal_(self.query_tokens, std=0.02)
         
         # Initialize Qformer configuration
-        self.qformer_config = BertConfig.from_pretrained("bert-base-uncased")
+        self.qformer_config = BertConfig.from_pretrained("bert-base-uncased") 
         self.qformer_config.encoder_width = vision_width
         
         # Set up cross-attention
@@ -42,6 +44,13 @@ class Qformer(nn.Module):
         # Initialize BERT model with LM head for Qformer
         self.qformer = BertLMHeadModel(self.qformer_config)
         
+
+        self.query_tokens = nn.Parameter(
+            torch.zeros(1, num_query_tokens, self.qformer_config.hidden_size)
+        )
+        self.query_tokens.data.normal_(mean=0.0, std=self.qformer_config.initializer_range)
+
+
         # Projection layers shown in the diagram - Điều chỉnh kích thước đầu vào
         # Chỉ cần projection nếu kích thước khác với hidden_size của BERT
         if vision_width != self.qformer_config.hidden_size:
@@ -58,6 +67,9 @@ class Qformer(nn.Module):
         self.cross_modal_text_transform = nn.Linear(self.qformer_config.hidden_size, self.qformer_config.hidden_size)
         self.cross_modal_image_transform = nn.Linear(self.qformer_config.hidden_size, self.qformer_config.hidden_size)
         
+        self.norm = nn.LayerNorm(self.qformer_config.hidden_size)
+        self.avgpool = nn.AdaptiveAvgPool1d(1)
+        self.flatten = nn.Flatten(1)
         # Final output projection for emotion recognition
         self.fc = nn.Linear(self.qformer_config.hidden_size, 26)  # Assuming 7 emotion classes
         
@@ -118,11 +130,11 @@ class Qformer(nn.Module):
         else:
             # Only use image pathway if no text is provided
             combined_query = query_image
-        
-        # Mean pooling over query tokens
-        pooled_output = combined_query.mean(dim=1)
-        
+        combined_query = combined_query.transpose(1, 2)
+
+        x = self.avgpool(combined_query)
+        x = nn.ReLU()(self.flatten(x))
         # Final classification
-        emotion_logits = self.fc(pooled_output)
+        emotion_logits = self.fc(x)
         
-        return emotion_logits, pooled_output
+        return emotion_logits
