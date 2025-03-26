@@ -6,11 +6,11 @@ import torch.optim as optim
 from torch.utils.data import DataLoader 
 from tqdm import tqdm 
 from utils.metrics import test_scikit_ap, test_emotic_vad, get_thresholds
-from infonce import SupervisedInfoNCE
+from infonce import SupervisedInfoNCE, InfoNCE
 
 import matplotlib.pyplot as plt
 
-loss_fn = SupervisedInfoNCE(temperature=0.07)
+loss_fn = InfoNCE(temperature=0.07)
 
 
 def train_disc(epochs,
@@ -92,8 +92,8 @@ def train_disc(epochs,
 
       pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
       cat_loss_batch = disc_loss(pred_cat, labels_cat)
-      features = torch.stack([pred_context, pred_text], dim=0)
-      loss_NCE = loss_fn(features, labels_cat)
+      features = torch.cat([pred_body, pred_text], dim=0)
+      loss_NCE = loss_fn(features)
       loss =  (cat_loss_batch + loss_NCE)/2
       running_loss += loss.item()
 
@@ -154,8 +154,9 @@ def train_disc(epochs,
 
         pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
         cat_loss_batch = disc_loss(pred_cat, labels_cat)
-        features = torch.stack([pred_context, pred_text], dim=0)
-        loss_NCE = loss_fn(features, labels_cat)
+
+        features = torch.cat([pred_body, pred_text], dim=0)
+        loss_NCE = loss_fn(features)
         loss =  (cat_loss_batch + loss_NCE)/2
         running_loss += loss.item()
 
