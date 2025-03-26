@@ -659,7 +659,7 @@ class QFormer(nn.Module):
         x_body = x_body.reshape(-1, 7*7, 768)
 
         combined_visual = torch.cat([x_context, x_body], dim=1) # shape (batch, path_size, 768)
-        emotion_logits, pooled_features = self.qformer(
+        emotion_logits, pooled_features, loss_NCE = self.qformer(
             combined_visual, 
             text_features, # shape (batch, seq_len, 768)
         )
@@ -667,8 +667,10 @@ class QFormer(nn.Module):
         x_context = self.flatten(x_context) 
         x_body = self.flatten(x_body)
 
-        combined_features = torch.cat([x_context, x_body, x_face, emotion_logits], dim=1)
+
+        
+        # loss_NCE.backward(retain_graph=True)
         
 
 
-        return emotion_logits  
+        return emotion_logits, loss_NCE

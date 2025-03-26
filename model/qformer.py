@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 from transformers import BertConfig, BertLMHeadModel, BertModel
+from infonce import SupervisedInfoNCE, InfoNCE
+
+loss_fn = InfoNCE(temperature=0.5)
 
 class Qformer(nn.Module):
     """
@@ -130,17 +133,23 @@ class Qformer(nn.Module):
             query_image = query_image + image_query_output  # Residual on image pathway
             query_text = query_text + text_query_output    # Residual on text pathway
             # Combine both pathways
+            features = torch.stack([query_image, query_text], dim=0)  # Shape: [2, batch_size, feature_dim]
+            features = features.view(-1, features.shape[-1])  # Shape: [2 * batch_size, feature_dim]
+            loss_NCE = loss_fn(features)
             combined_query = torch.cat([query_image, query_text], dim = 1)
         else:
             # Only use image pathway if no text is provided
             combined_query = query_image
         combined_query = combined_query.transpose(1, 2)
         
+
+
         # Pooling and classification
         x = self.avgpool(combined_query)
         x = nn.ReLU()(self.flatten(x))
         x = nn.Dropout(0.2)(x)
         # Final classification
         
+
         
         return x, combined_query
