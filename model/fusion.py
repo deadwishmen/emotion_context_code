@@ -153,7 +153,7 @@ class FusionConcatModel(nn.Module):
         self.fc_face = nn.Linear(num_face_features, 256)
         self.fc_text = nn.Linear(num_text_features, 256)
 
-        self.fc1 = nn.Linear(256*4, 256)
+        self.fc1 = nn.Linear(256*2, 256)
         self.fc2 = nn.Linear(256, 26)
         self.bn1 = nn.BatchNorm1d(256)
         self.d1 = nn.Dropout(p=0.5)
@@ -171,7 +171,9 @@ class FusionConcatModel(nn.Module):
         face_features = self.fc_face(face_features)
         text_features = self.fc_text(text_features)
         # Concatenate features
-        fuse_features = torch.cat((context_features, body_features, face_features, text_features), 1)
+        #fuse_features = torch.cat((context_features, body_features, face_features, text_features), 1)
+        fuse_features = torch.cat((body_features, text_features), 1)
+        
         fuse_out = self.fc1(fuse_features)
 
         # Feed-forward through the rest of the network

@@ -92,13 +92,17 @@ def train_disc(epochs,
 
       pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
       cat_loss_batch = disc_loss(pred_cat, labels_cat)
-      features = torch.cat([pred_body, pred_text], dim=0)
+      features = torch.stack([pred_body, pred_text], dim=0)  # Shape: [2, batch_size, feature_dim]
+      features = features.view(-1, features.shape[-1])  # Shape: [2 * batch_size, feature_dim]
       loss_NCE = loss_fn(features)
-      loss =  (cat_loss_batch + loss_NCE)/2
+      loss_NCE.backward(retain_graph=True)
+
+      loss =  (cat_loss_batch + loss_NCE)/2.0
+
       running_loss += loss.item()
       
-      loss_NCE.backward()
-      torch.nn.utils.clip_grad_norm_(fusion_model.parameters(), max_norm=1.0) # gradient clipping
+      loss.backward()
+      #torch.nn.utils.clip_grad_norm_(fusion_model.parameters(), max_norm=1.0) # gradient clipping
       opt.step()
 
       train_cat_preds[ indx : (indx + pred_cat.shape[0]), :] = pred_cat.to("cpu").data.numpy()
@@ -155,10 +159,12 @@ def train_disc(epochs,
         pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
         cat_loss_batch = disc_loss(pred_cat, labels_cat)
 
-        features = torch.cat([pred_body, pred_text], dim=0)
+        features = torch.stack([pred_body, pred_text], dim=0)  # Shape: [2, batch_size, feature_dim]
+        features = features.view(-1, features.shape[-1])  # Shape: [2 * batch_size, feature_dim]
         loss_NCE = loss_fn(features)
-        # loss =  (cat_loss_batch + loss_NCE)/2.0
-        loss =  loss_NCE
+        
+        loss =  (cat_loss_batch + loss_NCE)/2.0
+        # loss =  loss_NCE
         running_loss += loss.item()
 
         val_cat_preds[ indx : (indx + pred_cat.shape[0]), :] = pred_cat.to("cpu").data.numpy()
