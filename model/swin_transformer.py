@@ -717,10 +717,10 @@ class SwinTransformer(nn.Module):
 
         x = self.features(x) # (7, 7, 768)
 
-        x = self.norm(x)
-        x = self.permute(x)
-        x = self.avgpool(x)
-        x = self.flatten(x)
+        # x = self.norm(x)
+        # x = self.permute(x)
+        # x = self.avgpool(x)
+        # x = self.flatten(x)
         # x = self.head(x)
         return x
 
