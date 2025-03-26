@@ -157,7 +157,7 @@ def train_disc(epochs,
 
         features = torch.cat([pred_body, pred_text], dim=0)
         loss_NCE = loss_fn(features)
-        loss =  (cat_loss_batch + loss_NCE)/2
+        loss =  (cat_loss_batch + loss_NCE)/2.0
         running_loss += loss.item()
 
         val_cat_preds[ indx : (indx + pred_cat.shape[0]), :] = pred_cat.to("cpu").data.numpy()
