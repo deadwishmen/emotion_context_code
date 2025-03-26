@@ -161,7 +161,6 @@ class FusionConcatModel(nn.Module):
 
     def forward(self, x_context, x_body, x_face, x_text):
         # Shape: (batch_size, num_context_features), (batch_size, num_body_features), (batch_size, num_face_features)
-        print(x_context.shape)
         context_features = x_context.view(-1, self.num_context_features)
         body_features = x_body.view(-1, self.num_body_features)
         face_features = x_face.view(-1, self.num_face_features)
