@@ -671,6 +671,6 @@ class QFormer(nn.Module):
         
         # loss_NCE.backward(retain_graph=True)
         
-
+        emotion_logits = self.fc(emotion_logits)
 
         return emotion_logits, loss_NCE
