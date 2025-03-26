@@ -170,8 +170,10 @@ class FusionConcatModel(nn.Module):
         body_features = self.fc_body(body_features)
         face_features = self.fc_face(face_features)
         text_features = self.fc_text(text_features)
+
         # Concatenate features
-        fuse_features = torch.cat((context_features, body_features, face_features, text_features), 1)
+        #fuse_features = torch.cat((context_features, body_features, face_features, text_features), 1)
+        fuse_features = torch.cat((context_features, body_features,face_features , text_features), 1)
         
         fuse_out = self.fc1(fuse_features)
 
@@ -662,9 +664,9 @@ class QFormer(nn.Module):
             combined_visual, 
             text_features, # shape (batch, seq_len, 768)
         )
-        
-        x_context = self.flatten(x_context) 
-        x_body = self.flatten(x_body)
+        print(emotion_logits.shape)
+        # x_context = self.flatten(x_context) 
+        # x_body = self.flatten(x_body)
 
 
         
