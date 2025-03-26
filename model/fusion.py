@@ -171,7 +171,7 @@ class FusionConcatModel(nn.Module):
         face_features = self.fc_face(face_features)
         text_features = self.fc_text(text_features)
         # Concatenate features
-        #fuse_features = torch.cat((context_features, body_features, face_features, text_features), 1)
+        fuse_features = torch.cat((context_features, body_features, face_features, text_features), 1)
         
         fuse_out = self.fc1(fuse_features)
 
