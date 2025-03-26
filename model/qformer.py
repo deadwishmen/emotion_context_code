@@ -135,11 +135,6 @@ class Qformer(nn.Module):
             # Combine both pathways
            
             combined_query = torch.cat([query_image, query_text], dim = 1)
-            query_image = self.flatten(query_image)
-            query_text = self.flatten(query_text)
-            features = torch.stack([query_image, query_text], dim=0)  # Shape: [2, batch_size, feature_dim]
-            features = features.view(-1, features.shape[-1])  # Shape: [2 * batch_size, feature_dim]
-            loss_NCE = loss_fn(features)
         else:
             # Only use image pathway if no text is provided
             combined_query = query_image
@@ -155,4 +150,4 @@ class Qformer(nn.Module):
         
 
         
-        return x, combined_query, loss_NCE
+        return x, combined_query

@@ -25,7 +25,8 @@ def train_disc(epochs,
               train_loader = None,
               val_loader = None,
               device = 'cpu',
-              conbine =  False):
+              conbine =  False,
+              choices_model_context = None):
 
   if not os.path.exists(model_path):
     os.makedirs(model_path)
@@ -83,6 +84,9 @@ def train_disc(epochs,
       if conbine == "q_former":
         pred_text = model_text(**tokenizer_text).last_hidden_state
         pred_context = model_context(images_context)[:, 1:]
+      elif choices_model_context == "vit":
+        pred_context = model_context.get_image_features(pixel_values=images_context)
+        pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
       else:
         pred_context = model_context(images_context)
         pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
@@ -90,7 +94,7 @@ def train_disc(epochs,
 
 
 
-      pred_cat, loss_NCE = fusion_model(pred_context, pred_body, pred_face, pred_text)
+      pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
       cat_loss_batch = disc_loss(pred_cat, labels_cat)
 
       # features = torch.stack([pred_body, pred_text], dim=0)  # Shape: [2, batch_size, feature_dim]
@@ -98,7 +102,7 @@ def train_disc(epochs,
       # loss_NCE = loss_fn(features)
       # loss_NCE.backward(retain_graph=True)
 
-      loss =  cat_loss_batch + loss_NCE
+      loss =  cat_loss_batch 
 
       running_loss += loss.item()
       
@@ -156,11 +160,11 @@ def train_disc(epochs,
 
         
 
-        pred_cat, loss_NCE = fusion_model(pred_context, pred_body, pred_face, pred_text)
+        pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
         cat_loss_batch = disc_loss(pred_cat, labels_cat)
 
         
-        loss =  cat_loss_batch + loss_NCE
+        loss =  cat_loss_batch 
         # loss =  loss_NCE
         running_loss += loss.item()
 

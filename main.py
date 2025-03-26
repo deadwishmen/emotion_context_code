@@ -18,6 +18,7 @@ from dataset.data_loader import load_data, set_normalization_and_transforms
 from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss, FocalLoss
 from utils.training import train_disc
 from utils.testing import test_disc
+from transformers import CLIPModel
 
 
 
@@ -38,6 +39,7 @@ def get_arg():
   parser.add_argument('--epochs', default=25, type=int)
   parser.add_argument('--loss', default='L2', type=str, choices=['L2', 'BCE', 'CrossEntropy', 'Huber', 'FocalLoss'])
   parser.add_argument('--model_body', default='swin-t', type=str, choices=['swin-t', 'swin-s', 'swin-b', 'swin-l', 'resnet', 'vit'])
+  parser.add_argument('--model_context', default='resnet', type=str, choices=['resnet', 'vit'])
   parser.add_argument('--path_dataset', default='/content/drive/MyDrive/DatMinhNe/Dataset/emotic_obj_full', type=str)
   parser.add_argument('--learning_rate', default=0.001, type=float)
   parser.add_argument('--weight_decay', default=5e-4, type=float)
@@ -57,10 +59,11 @@ def train(pars):
   conbine = args.conbine
   epochs = args.epochs
   choices_model_body = args.model_body
+  choices_model_context = args.model_context
   model_path = args.save_model
   loss_function = args.loss
   model_text = args.model_text
-  num_context_features = 0
+  num_context_features = 768
   xai = args.xai
   context_norm, body_norm, face_norm, train_transform, test_transform, face_train_transform, face_test_transform = set_normalization_and_transforms(choices_model_body)
 
@@ -87,7 +90,10 @@ def train(pars):
   }
   if conbine == "q_former":
     model_context = vit_b_16(pretrained = True)
-  else: 
+  elif choices_model_context == "vit":
+    model_name = "openai/clip-vit-large-patch14"
+    model_context = CLIPModel.from_pretrained(model_name)
+  elif choices_model_context == "resnet": 
     model_context = resnet50_place365(pretrained = True)
     print(summary(model_context, (3,224,224), device="cpu"))
     num_context_features = list(model_context.children())[-1].in_features
@@ -186,7 +192,8 @@ def train(pars):
             train_loader = train_loader,
             val_loader = val_loader,
             device = device,
-            conbine = conbine
+            conbine = conbine,
+            choices_model_context = choices_model_context
             )
 
   f, [[ax1, ax2], [ax3, ax4]] = plt.subplots(2, 2, figsize = (15, 10))
