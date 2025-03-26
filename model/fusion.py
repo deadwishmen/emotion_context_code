@@ -647,7 +647,8 @@ class QFormer(nn.Module):
 
 
         self.qformer = Qformer()
-
+        self.flatten = nn.Flatten(1)
+        self.fc = nn.Linear(768, 26)
 
     def forward(self, x_context, x_body, x_face, text_features):
         """
@@ -660,6 +661,12 @@ class QFormer(nn.Module):
             combined_visual, 
             text_features, # shape (batch, seq_len, 768)
         )
-
         
+        x_context = self.flatten(x_context) 
+        x_body = self.flatten(x_body)
+
+        combined_features = torch.cat([x_context, x_body, x_face, emotion_logits], dim=1)
+        
+
+
         return emotion_logits  

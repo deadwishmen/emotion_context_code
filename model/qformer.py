@@ -141,6 +141,6 @@ class Qformer(nn.Module):
         x = nn.ReLU()(self.flatten(x))
         x = nn.Dropout(0.2)(x)
         # Final classification
-        emotion_logits = self.fc(x)
         
-        return emotion_logits, combined_query
+        
+        return x, combined_query
