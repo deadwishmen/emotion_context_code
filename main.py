@@ -149,11 +149,11 @@ def train(pars):
   for param in model_context.parameters():
     param.requires_grad = False
   for param in model_body.parameters():
-    param.requires_grad = False
+    param.requires_grad = True
   for param in model_face.parameters():
     param.requires_grad = False
   for param in model_text.parameters():
-    param.requires_grad = False
+    param.requires_grad = True
 
 
 

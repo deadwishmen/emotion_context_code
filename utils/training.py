@@ -96,7 +96,7 @@ def train_disc(epochs,
       loss_NCE = loss_fn(features)
       loss =  (cat_loss_batch + loss_NCE)/2
       running_loss += loss.item()
-
+      
       loss_NCE.backward()
       torch.nn.utils.clip_grad_norm_(fusion_model.parameters(), max_norm=1.0) # gradient clipping
       opt.step()
