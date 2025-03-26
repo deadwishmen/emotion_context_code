@@ -90,7 +90,7 @@ def train_disc(epochs,
 
 
 
-      pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
+      pred_cat, loss_NCE = fusion_model(pred_context, pred_body, pred_face, pred_text)
       cat_loss_batch = disc_loss(pred_cat, labels_cat)
 
       # features = torch.stack([pred_body, pred_text], dim=0)  # Shape: [2, batch_size, feature_dim]
@@ -98,7 +98,7 @@ def train_disc(epochs,
       # loss_NCE = loss_fn(features)
       # loss_NCE.backward(retain_graph=True)
 
-      loss =  cat_loss_batch
+      loss =  cat_loss_batch + loss_NCE
 
       running_loss += loss.item()
       
@@ -156,11 +156,11 @@ def train_disc(epochs,
 
         
 
-        pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
+        pred_cat, loss_NCE = fusion_model(pred_context, pred_body, pred_face, pred_text)
         cat_loss_batch = disc_loss(pred_cat, labels_cat)
 
         
-        loss =  cat_loss_batch
+        loss =  cat_loss_batch + loss_NCE
         # loss =  loss_NCE
         running_loss += loss.item()
 
