@@ -68,7 +68,7 @@ def test_disc(models, device, data_loader, num_images, conbine = False, xai = Fa
                 pred_context = model_context(images_context)[:, 1:]
             else:
                 pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
-                pred_context = model_context.encoder(images_context)
+                pred_context = model_context(images_context)
             pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
             
             if xai:
