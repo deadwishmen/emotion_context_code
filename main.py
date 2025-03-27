@@ -159,11 +159,11 @@ def train(pars):
     param.requires_grad = False
 
 
+  # parm = (list(fusion_model.parameters()) + list(model_context.parameters()) + \
+  #                 list(model_body.parameters()) + list(model_face.parameters()) + list(model_text.parameters()))
+  parm = (list(fusion_model.parameters()) + list(model_text.parameters()))
 
-
-
-  opt = optim.AdamW((list(fusion_model.parameters()) + list(model_context.parameters()) + \
-                  list(model_body.parameters()) + list(model_face.parameters()) + list(model_text.parameters())), 
+  opt = optim.AdamW(parm, 
                   lr=pars.learning_rate, weight_decay=pars.weight_decay)
 
   scheduler = StepLR(opt, step_size=7, gamma=gamma)
