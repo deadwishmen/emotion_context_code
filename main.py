@@ -90,9 +90,6 @@ def train(pars):
   }
   if conbine == "q_former":
     model_context = vit_b_16(pretrained = True)
-  elif choices_model_context == "vit":
-    model_name = "openai/clip-vit-large-patch14"
-    model_context = CLIPModel.from_pretrained(model_name)
   elif choices_model_context == "resnet": 
     model_context = resnet50_place365(pretrained = True)
     print(summary(model_context, (3,224,224), device="cpu"))
