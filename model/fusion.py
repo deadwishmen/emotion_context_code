@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from model.transformer import CrossAttention
 
 from model.qformer import Qformer
+from model.FAN import FANLayer
 
 
 
@@ -153,7 +154,8 @@ class FusionConcatModel(nn.Module):
         self.fc_face = nn.Linear(num_face_features, 256)
         self.fc_text = nn.Linear(num_text_features, 256)
 
-        self.fc1 = nn.Linear(256, 256)
+        self.fan_text = FANLayer(num_text_features, 256)
+        self.fan1 = FANLayer(256, 256)
         self.fc2 = nn.Linear(256, 26)
         self.bn1 = nn.BatchNorm1d(256)
         self.d1 = nn.Dropout(p=0.5)
@@ -169,13 +171,15 @@ class FusionConcatModel(nn.Module):
         context_features = self.fc_context(context_features)
         body_features = self.fc_body(body_features)
         face_features = self.fc_face(face_features)
-        text_features = self.fc_text(text_features)
+
+        
+        text_features = self.fan_text(text_features)
 
         # Concatenate features
         #fuse_features = torch.cat((context_features, body_features, face_features, text_features), 1)
         # fuse_features = torch.cat((context_features, body_features,face_features , text_features), 1)
         
-        fuse_out = self.fc1(text_features)
+        fuse_out = self.fan1(text_features)
 
         # Feed-forward through the rest of the network
         fuse_out = self.bn1(fuse_out)
