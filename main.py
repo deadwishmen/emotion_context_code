@@ -18,6 +18,7 @@ from dataset.data_loader import load_data, set_normalization_and_transforms
 from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss, FocalLoss
 from utils.training import train_disc
 from utils.testing import test_disc
+from utils.predict import predict_and_show
 from transformers import CLIPModel
 
 
@@ -211,7 +212,8 @@ def train(pars):
 
   test_map = test_disc([model_context, model_body, model_face, model_text, fusion_model], device, test_loader, test_length, conbine = conbine, xai = xai)
   print ('testing mAP=%.4f' %(test_map))
-
+  predict_and_show([model_context, model_body, model_face, model_text, fusion_model], device, test_loader, test_length, conbine = conbine, xai = xai)
+  plt.show()
 if __name__=='__main__':
   args = get_arg()
   train(args)
