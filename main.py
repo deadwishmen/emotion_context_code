@@ -230,8 +230,8 @@ def train(pars):
 
   print ('completed cell')
 
-  test_map = test_disc([model_context, model_body, model_face, model_text, fusion_model], device, test_loader, test_length, conbine = conbine, xai = xai)
-  print ('testing mAP=%.4f' %(test_map))
+  # test_map = test_disc([model_context, model_body, model_face, model_text, fusion_model], device, test_loader, test_length, conbine = conbine, xai = xai)
+  # print ('testing mAP=%.4f' %(test_map))
   predict_and_show(
     [model_context, model_body, model_face, model_text, fusion_model],
     device,
