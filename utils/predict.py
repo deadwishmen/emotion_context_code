@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from tqdm import tqdm
 
-def predict_and_show(models, device, data_loader, num_samples=5, class_names=None, conbine=False):
+def predict_and_show(models, device, data_loader, num_samples=5, class_names=None, conbine=False, thresholds_path='./thresholds.npy'):
     """
     Dự đoán nhãn cho một số mẫu từ data_loader và hiển thị ảnh với nhãn dự đoán và nhãn thực.
     
@@ -14,14 +14,31 @@ def predict_and_show(models, device, data_loader, num_samples=5, class_names=Non
         num_samples: Số lượng mẫu cần hiển thị
         class_names: Danh sách tên các lớp (26 lớp cảm xúc). Nếu None, sử dụng chỉ số lớp.
         conbine: Nếu là 'q_former', xử lý đặc biệt cho pred_context và pred_text
+        thresholds_path: Path to the precomputed thresholds file (default: './thresholds.npy').
+                        Must be a NumPy array of shape [26] containing per-class thresholds for logits.
     """
     # Validate num_samples
     num_samples = min(num_samples, 10)
     if num_samples < 1:
         raise ValueError("num_samples must be at least 1")
     
+    # Load thresholds
+    try:
+        thresholds = np.load(thresholds_path)
+        print(f"Loaded thresholds from '{thresholds_path}'")
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Thresholds file '{thresholds_path}' not found")
+    
+    # Validate thresholds
+    if not isinstance(thresholds, np.ndarray) or thresholds.shape != (26,):
+        raise ValueError("thresholds must be a NumPy array of shape (26,)")
+    
+    # Convert thresholds to torch tensor
+    thresholds = torch.from_numpy(thresholds).to(device)
+    
     print(f"num_samples: {num_samples}, device: {device}, conbine: {conbine}")
     print(f"DataLoader length: {len(data_loader)}")
+    print(f"Thresholds: {thresholds.cpu().numpy().tolist()}")
 
     model_context, model_body, model_face, model_text, fusion_model = models
     
@@ -67,8 +84,9 @@ def predict_and_show(models, device, data_loader, num_samples=5, class_names=Non
                     pred_context = model_context(images_context)
                 pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
                 
-                # Áp dụng sigmoid
-                pred_cat = torch.sigmoid(pred_cat).cpu().numpy()
+                # So sánh logits với ngưỡng
+                bool_cat_pred = torch.gt(pred_cat, thresholds).cpu().numpy()
+                pred_cat_values = pred_cat.cpu().numpy()  # Lưu giá trị logits để hiển thị
                 labels_cat = labels_cat.cpu().numpy()
                 
                 # Xử lý từng mẫu trong batch
@@ -80,10 +98,18 @@ def predict_and_show(models, device, data_loader, num_samples=5, class_names=Non
                     img = images_context[i].cpu().numpy().transpose(1, 2, 0)
                     img = (img - img.min()) / (img.max() - img.min() + 1e-8)
                     
-                    # Lấy nhãn
-                    pred_labels = np.where(pred_cat[i] > 0.5)[0]
+                    # Lấy nhãn dự đoán từ bool_cat_pred
+                    pred_labels = []
+                    for idx in range(len(bool_cat_pred[i])):
+                        if bool_cat_pred[i][idx]:
+                            pred_labels.append((class_names[idx], pred_cat_values[i][idx]))
+                    
+                    # Sắp xếp theo giá trị logits giảm dần
+                    pred_labels.sort(key=lambda x: x[1], reverse=True)
+                    pred_label_names = [f"{name} ({prob:.2f})" for name, prob in pred_labels]
+                    
+                    # Lấy nhãn thực
                     true_labels = np.where(labels_cat[i] == 1)[0]
-                    pred_label_names = [class_names[idx] for idx in pred_labels]
                     true_label_names = [class_names[idx] for idx in true_labels]
                     
                     # Hiển thị ảnh và nhãn
