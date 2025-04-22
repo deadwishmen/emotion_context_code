@@ -238,7 +238,8 @@ def train(pars):
     test_loader,
     num_samples=test_length,  # hoặc số mẫu bạn muốn hiển thị
     class_names=class_names,  # cung cấp danh sách tên lớp nếu có
-    conbine=conbine  # giá trị của conbine, ví dụ: "q_former" hoặc False
+    conbine=conbine,  # giá trị của conbine, ví dụ: "q_former" hoặc False
+    thresholds_path='/kaggle/working/model_text/thresholds.npy'
   )
   plt.show()
 if __name__=='__main__':
