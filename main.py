@@ -21,6 +21,7 @@ from utils.testing import test_disc
 from utils.predict import predict_and_show
 from transformers import CLIPModel
 import os
+import pandas as pd
 
 
 class_names = [
@@ -232,10 +233,18 @@ def train(pars):
 
   # test_map = test_disc([model_context, model_body, model_face, model_text, fusion_model], device, val_loader, val_length, conbine = conbine, xai = xai)
   # print ('testing mAP=%.4f' %(test_map))
+
+  # Đọc file CSV
+  path_dataset = "/kaggle/input/emotion-torch/context_dataset/context_dataset/test.csv"
+  df = pd.read_csv(path_dataset)
+
+  # Lấy danh sách các đoạn văn bản
+  sentences = df['Output'].tolist()
   predict_and_show(
     [model_context, model_body, model_face, model_text, fusion_model],
     device,
     test_loader,
+    sentences=sentences,
     num_samples=test_length,  # hoặc số mẫu bạn muốn hiển thị
     class_names=class_names,  # cung cấp danh sách tên lớp nếu có
     conbine=conbine,  # giá trị của conbine, ví dụ: "q_former" hoặc False
