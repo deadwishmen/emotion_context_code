@@ -119,7 +119,7 @@ def load_data(data_src, batch_size,
     val_cont = np.load(os.path.join(data_src,'val_cont_arr.npy'))
 
     # Load test data
-    test_context = np.load(os.path.join(data_src,'test_context_arr.npy'))
+    test_context = np.load(os.path.join(data_src,'test_context_bbox_arr.npy'))
     test_body = np.load(os.path.join(data_src,'test_body_arr.npy'))
     test_cat = np.load(os.path.join(data_src,'test_cat_arr.npy'))
     test_cont = np.load(os.path.join(data_src,'test_cont_arr.npy'))
