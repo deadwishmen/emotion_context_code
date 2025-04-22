@@ -1,27 +1,22 @@
-import matplotlib.pyplot as plt
-import torch
-import numpy as np
-from tqdm import tqdm
-import random
-from torch.utils.data import Subset, DataLoader
-
-def predict_and_show(models, device, data_loader, sentences, num_samples=1, class_names=None, conbine=False, thresholds_path='./thresholds.npy'):
+def predict_and_show(models, device, data_loader, sentences, num_samples=10, class_names=None, conbine=False, thresholds_path='./thresholds.npy'):
     """
-    Dự đoán nhãn cho một mẫu ngẫu nhiên từ data_loader và hiển thị ảnh với nhãn dự đoán, nhãn thực, và đoạn văn bản.
-    
+    Dự đoán nhãn cho một số mẫu ngẫu nhiên từ data_loader và hiển thị ảnh với nhãn dự đoán, nhãn thực, và đoạn văn bản.
+
     Args:
         models: Tuple chứa (model_context, model_body, model_face, model_text, fusion_model)
         device: Thiết bị để chạy mô hình (CPU hoặc GPU)
         data_loader: DataLoader chứa dữ liệu kiểm tra
         sentences: Danh sách các đoạn văn bản tương ứng với các mẫu trong dataset
-        num_samples: Số lượng mẫu cần hiển thị (fixed to 1)
+        num_samples: Số lượng mẫu cần hiển thị (default: 10)
         class_names: Danh sách tên các lớp (26 lớp cảm xúc). Nếu None, sử dụng chỉ số lớp.
         conbine: Nếu là 'q_former', xử lý đặc biệt cho pred_context và pred_text
         thresholds_path: Path to the precomputed thresholds file (default: './thresholds.npy').
                         Must be a NumPy array of shape [26] containing per-class thresholds for logits.
     """
-    # Fixed num_samples to 1
-    num_samples = 1
+    # Validate num_samples
+    if num_samples != 10:
+        print(f"Warning: num_samples set to 10 for random sampling, ignoring input {num_samples}")
+        num_samples = 10
     
     # Load thresholds
     try:
@@ -60,21 +55,23 @@ def predict_and_show(models, device, data_loader, sentences, num_samples=1, clas
     if len(sentences) != dataset_size:
         raise ValueError(f"Length of sentences ({len(sentences)}) does not match dataset size ({dataset_size})")
     
-    # Chọn ngẫu nhiên 1 mẫu
+    # Chọn ngẫu nhiên 10 mẫu
     random_indices = random.sample(range(dataset_size), num_samples)
-    print(f"Selected random index: {random_indices}")
+    print(f"Selected random indices: {random_indices}")
     
-    # Tạo Subset và DataLoader mới cho mẫu ngẫu nhiên
+    # Tạo Subset và DataLoader mới cho các mẫu ngẫu nhiên
     random_subset = Subset(data_loader.dataset, random_indices)
     random_loader = DataLoader(
         random_subset,
-        batch_size=1,  # Batch size cố định là 1
+        batch_size=data_loader.batch_size,
         shuffle=False,
         collate_fn=data_loader.collate_fn if data_loader.collate_fn else None
     )
     
-    # Tạo figure với kích thước lớn hơn cho chữ rõ ràng
-    fig, ax = plt.subplots(1, 1, figsize=(10, 6), dpi=100)
+    # Tạo figure
+    fig, axes = plt.subplots(num_samples, 1, figsize=(10, 3 * num_samples), dpi=80)
+    if num_samples == 1:
+        axes = [axes]
     
     displayed_samples = 0
     
@@ -110,46 +107,50 @@ def predict_and_show(models, device, data_loader, sentences, num_samples=1, clas
                 pred_cat_values = pred_cat.cpu().numpy()
                 labels_cat = labels_cat.cpu().numpy()
                 
-                # Xử lý mẫu duy nhất
-                sample_idx = random_indices[displayed_samples]
+                # Xử lý từng mẫu trong batch
+                for i in range(images_context.shape[0]):
+                    if displayed_samples >= num_samples:
+                        break
+                    
+                    # Lấy chỉ số gốc của mẫu từ random_indices
+                    sample_idx = random_indices[displayed_samples]
+                    
+                    # Lấy ảnh context
+                    img = images_context[i].cpu().numpy().transpose(1, 2, 0)
+                    img = (img - img.min()) / (img.max() - img.min() + 1e-8)
+                    
+                    # Lấy nhãn dự đoán từ bool_cat_pred
+                    pred_labels = []
+                    for idx in range(len(bool_cat_pred[i])):
+                        if bool_cat_pred[i][idx]:
+                            pred_labels.append((class_names[idx], pred_cat_values[i][idx]))
+                    
+                    # Sắp xếp theo giá trị logits giảm dần
+                    pred_labels.sort(key=lambda x: x[1], reverse=True)
+                    pred_label_names = [f"{name} ({prob:.2f})" for name, prob in pred_labels]
+                    
+                    # Lấy nhãn thực
+                    true_labels = np.where(labels_cat[i] == 1)[0]
+                    true_label_names = [class_names[idx] for idx in true_labels]
+                    
+                    # Lấy đoạn văn bản tương ứng
+                    sentence = sentences[sample_idx]
+                    print(f"Sentence: {sentence}")
+                    # Hiển thị ảnh và thông tin
+                    axes[displayed_samples].imshow(img)
+                    axes[displayed_samples].set_title(
+                        f"Pred: {', '.join(pred_label_names) if pred_label_names else 'None'}\n"
+                        f"True: {', '.join(true_label_names) if true_label_names else 'None'}\n"
+                        f"Text: {sentence}",
+                        fontsize=10
+                    )
+                    axes[displayed_samples].axis('off')
+                    
+                    displayed_samples += 1
+                    print(f"Displayed sample {displayed_samples}/{num_samples}")
                 
-                # Lấy ảnh context
-                img = images_context[0].cpu().numpy().transpose(1, 2, 0)
-                img = (img - img.min()) / (img.max() - img.min() + 1e-8)
-                
-                # Lấy nhãn dự đoán từ bool_cat_pred
-                pred_labels = []
-                for idx in range(len(bool_cat_pred[0])):
-                    if bool_cat_pred[0][idx]:
-                        pred_labels.append((class_names[idx], pred_cat_values[0][idx]))
-                
-                # Sắp xếp theo giá trị logits giảm dần
-                pred_labels.sort(key=lambda x: x[1], reverse=True)
-                pred_label_names = [f"{name} ({prob:.2f})" for name, prob in pred_labels]
-                
-                # Lấy nhãn thực
-                true_labels = np.where(labels_cat[0] == 1)[0]
-                true_label_names = [class_names[idx] for idx in true_labels]
-                
-                # Lấy đoạn văn bản tương ứng và cắt ngắn nếu cần
-                sentence = sentences[sample_idx]
-                if len(sentence) > 100:  # Giới hạn 100 ký tự để tránh chữ quá dài
-                    sentence = sentence[:100] + "..."
-                
-                # Hiển thị ảnh và thông tin với chữ lớn
-                ax.imshow(img)
-                ax.set_title(
-                    f"Predicted: {', '.join(pred_label_names) if pred_label_names else 'None'}\n"
-                    f"True: {', '.join(true_label_names) if true_label_names else 'None'}\n"
-                    f"Text: {sentence}",
-                    fontsize=14,  # Tăng kích thước chữ
-                    pad=20  # Thêm khoảng cách để chữ không bị cắt
-                )
-                ax.axis('off')
-                
-                displayed_samples += 1
-                print(f"Displayed sample {displayed_samples}/{num_samples}")
-                break  # Thoát vòng lặp sau khi hiển thị 1 mẫu
+                if displayed_samples >= num_samples:
+                    break
             
             except Exception as e:
                 print(f"Error in batch {batch_idx}: {str(e)}")
@@ -161,9 +162,9 @@ def predict_and_show(models, device, data_loader, sentences, num_samples=1, clas
         return
     
     plt.tight_layout()
-    plt.savefig("prediction_sample.png", bbox_inches='tight')
+    plt.savefig("prediction_comparison.png", bbox_inches='tight')
     try:
         plt.show()
     except Exception as e:
         print(f"Error displaying plot: {str(e)}")
-    print("Hình ảnh đã được lưu tại: prediction_sample.png")
+    print("Hình ảnh đã được lưu tại: prediction_comparison.png")
