@@ -1,3 +1,9 @@
+import matplotlib.pyplot as plt
+import torch
+import numpy as np
+from tqdm import tqdm
+import random
+from torch.utils.data import Subset, DataLoader
 def predict_and_show(models, device, data_loader, sentences, num_samples=10, class_names=None, conbine=False, thresholds_path='./thresholds.npy'):
     """
     Dự đoán nhãn cho một số mẫu ngẫu nhiên từ data_loader và hiển thị ảnh với nhãn dự đoán, nhãn thực, và đoạn văn bản.
