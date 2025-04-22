@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from tqdm import tqdm
 
-def predict_and_show(models, device, data_loader, num_samples=5, class_names=None):
+def predict_and_show(models, device, data_loader, num_samples=5, class_names=None, conbine=False):
     """
     Dự đoán nhãn cho một số mẫu từ data_loader và hiển thị ảnh với nhãn dự đoán và nhãn thực.
     
@@ -13,6 +13,7 @@ def predict_and_show(models, device, data_loader, num_samples=5, class_names=Non
         data_loader: DataLoader chứa dữ liệu kiểm tra
         num_samples: Số lượng mẫu cần hiển thị
         class_names: Danh sách tên các lớp (26 lớp cảm xúc). Nếu None, sử dụng chỉ số lớp.
+        conbine: Nếu là 'q_former', xử lý đặc biệt cho pred_context và pred_text
     """
     model_context, model_body, model_face, model_text, fusion_model = models
     
@@ -46,8 +47,12 @@ def predict_and_show(models, device, data_loader, num_samples=5, class_names=Non
             # Dự đoán
             pred_body = model_body(images_body)
             pred_face = model_face(images_face)
-            pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
-            pred_context = model_context(images_context)
+            if conbine == "q_former":
+                pred_text = model_text(**tokenizer_text).last_hidden_state
+                pred_context = model_context(images_context)[:, 1:]
+            else:
+                pred_text = model_text(**tokenizer_text).last_hidden_state.mean(dim=1)
+                pred_context = model_context(images_context)
             pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
             
             # Áp dụng sigmoid để chuyển logits thành xác suất
