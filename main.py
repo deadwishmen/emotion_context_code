@@ -230,17 +230,17 @@ def train(pars):
 
   print ('completed cell')
 
-  # test_map = test_disc([model_context, model_body, model_face, model_text, fusion_model], device, test_loader, test_length, conbine = conbine, xai = xai)
-  # print ('testing mAP=%.4f' %(test_map))
-  predict_and_show(
-    [model_context, model_body, model_face, model_text, fusion_model],
-    device,
-    test_loader,
-    num_samples=test_length,  # hoặc số mẫu bạn muốn hiển thị
-    class_names=class_names,  # cung cấp danh sách tên lớp nếu có
-    conbine=conbine  # giá trị của conbine, ví dụ: "q_former" hoặc False
-  )
-  plt.show()
+  test_map = test_disc([model_context, model_body, model_face, model_text, fusion_model], device, val_loader, val_length, conbine = conbine, xai = xai)
+  print ('testing mAP=%.4f' %(test_map))
+  # predict_and_show(
+  #   [model_context, model_body, model_face, model_text, fusion_model],
+  #   device,
+  #   test_loader,
+  #   num_samples=test_length,  # hoặc số mẫu bạn muốn hiển thị
+  #   class_names=class_names,  # cung cấp danh sách tên lớp nếu có
+  #   conbine=conbine  # giá trị của conbine, ví dụ: "q_former" hoặc False
+  # )
+  # plt.show()
 if __name__=='__main__':
   args = get_arg()
   train(args)

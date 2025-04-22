@@ -79,7 +79,10 @@ def test_disc(models, device, data_loader, num_images, conbine = False, xai = Fa
             cat_preds[ indx : (indx + pred_cat.shape[0]), :] = pred_cat.to("cpu").data.numpy()
             cat_labels[ indx : (indx + labels_cat.shape[0]), :] = labels_cat.to("cpu").data.numpy()
             indx = indx + pred_cat.shape[0]
-
+            
+        thresholds = get_thresholds(cat_preds, cat_labels)
+        np.save(os.path.join('/', 'thresholds.npy' ), thresholds)
+        print ('saved thresholds')
     if xai:
         all_importance = np.array(all_importance)
         feature_importance = all_importance.mean(axis=0)
