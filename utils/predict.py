@@ -2,25 +2,27 @@ import matplotlib.pyplot as plt
 import torch
 import numpy as np
 from tqdm import tqdm
+import random
+from torch.utils.data import Subset, DataLoader
 
-def predict_and_show(models, device, data_loader, num_samples=5, class_names=None, conbine=False, thresholds_path='./thresholds.npy'):
+def predict_and_show(models, device, data_loader, num_samples=10, class_names=None, conbine=False, thresholds_path='./thresholds.npy'):
     """
-    Dự đoán nhãn cho một số mẫu từ data_loader và hiển thị ảnh với nhãn dự đoán và nhãn thực.
+    Dự đoán nhãn cho một số mẫu ngẫu nhiên từ data_loader và hiển thị ảnh với nhãn dự đoán và nhãn thực.
     
     Args:
         models: Tuple chứa (model_context, model_body, model_face, model_text, fusion_model)
         device: Thiết bị để chạy mô hình (CPU hoặc GPU)
         data_loader: DataLoader chứa dữ liệu kiểm tra
-        num_samples: Số lượng mẫu cần hiển thị
+        num_samples: Số lượng mẫu cần hiển thị (default: 10)
         class_names: Danh sách tên các lớp (26 lớp cảm xúc). Nếu None, sử dụng chỉ số lớp.
         conbine: Nếu là 'q_former', xử lý đặc biệt cho pred_context và pred_text
         thresholds_path: Path to the precomputed thresholds file (default: './thresholds.npy').
                         Must be a NumPy array of shape [26] containing per-class thresholds for logits.
     """
     # Validate num_samples
-    num_samples = min(num_samples, 10)
-    if num_samples < 1:
-        raise ValueError("num_samples must be at least 1")
+    if num_samples != 10:
+        print(f"Warning: num_samples set to 10 for random sampling, ignoring input {num_samples}")
+        num_samples = 10
     
     # Load thresholds
     try:
@@ -50,6 +52,24 @@ def predict_and_show(models, device, data_loader, num_samples=5, class_names=Non
     if class_names is None:
         class_names = [f"Class {i}" for i in range(26)]
     
+    # Lấy số lượng mẫu tổng cộng từ dataset
+    dataset_size = len(data_loader.dataset)
+    if dataset_size < num_samples:
+        raise ValueError(f"Dataset has only {dataset_size} samples, but {num_samples} are required")
+    
+    # Chọn ngẫu nhiên 10 mẫu
+    random_indices = random.sample(range(dataset_size), num_samples)
+    print(f"Selected random indices: {random_indices}")
+    
+    # Tạo Subset và DataLoader mới cho các mẫu ngẫu nhiên
+    random_subset = Subset(data_loader.dataset, random_indices)
+    random_loader = DataLoader(
+        random_subset,
+        batch_size=data_loader.batch_size,
+        shuffle=False,  # Không cần shuffle vì đã chọn ngẫu nhiên
+        collate_fn=data_loader.collate_fn if data_loader.collate_fn else None
+    )
+    
     # Tạo figure
     fig, axes = plt.subplots(num_samples, 1, figsize=(10, 3 * num_samples), dpi=80)
     if num_samples == 1:
@@ -58,7 +78,7 @@ def predict_and_show(models, device, data_loader, num_samples=5, class_names=Non
     displayed_samples = 0
     
     with torch.no_grad():
-        for batch_idx, batch in enumerate(tqdm(data_loader, total=len(data_loader))):
+        for batch_idx, batch in enumerate(tqdm(random_loader, total=len(random_loader))):
             try:
                 # Unpack batch
                 images_context, images_body, images_face, tokenizer_text, labels_cat, labels_cont = batch
