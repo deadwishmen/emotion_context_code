@@ -15,6 +15,11 @@ def predict_and_show(models, device, data_loader, num_samples=5, class_names=Non
         class_names: Danh sách tên các lớp (26 lớp cảm xúc). Nếu None, sử dụng chỉ số lớp.
         conbine: Nếu là 'q_former', xử lý đặc biệt cho pred_context và pred_text
     """
+    # Validate num_samples
+    num_samples = min(num_samples, 10)  # Cap at 10 to avoid large figures
+    if num_samples < 1:
+        raise ValueError("num_samples must be at least 1")
+
     model_context, model_body, model_face, model_text, fusion_model = models
     
     # Chuyển các mô hình sang device và đặt ở chế độ đánh giá
@@ -28,11 +33,13 @@ def predict_and_show(models, device, data_loader, num_samples=5, class_names=Non
     if class_names is None:
         class_names = [f"Class {i}" for i in range(26)]
     
-    # Lưu trữ các mẫu để hiển thị
-    displayed_samples = 0
-    fig, axes = plt.subplots(num_samples, 1, figsize=(10, 5 * num_samples))
+    # Tạo figure với kích thước hợp lý và DPI thấp hơn
+    fig, axes = plt.subplots(num_samples, 1, figsize=(10, 3 * num_samples), dpi=80)
     if num_samples == 1:
         axes = [axes]  # Đảm bảo axes là danh sách
+    
+    # Lưu trữ các mẫu để hiển thị
+    displayed_samples = 0
     
     with torch.no_grad():
         for images_context, images_body, images_face, tokenizer_text, labels_cat, labels_cont in tqdm(iter(data_loader), total=len(data_loader)):
@@ -81,7 +88,7 @@ def predict_and_show(models, device, data_loader, num_samples=5, class_names=Non
                 axes[displayed_samples].set_title(
                     f"Pred: {', '.join(pred_label_names) if pred_label_names else 'None'}\n"
                     f"True: {', '.join(true_label_names) if true_label_names else 'None'}",
-                    fontsize=12
+                    fontsize=10
                 )
                 axes[displayed_samples].axis('off')
                 
@@ -91,6 +98,6 @@ def predict_and_show(models, device, data_loader, num_samples=5, class_names=Non
                 break
     
     plt.tight_layout()
-    plt.savefig("prediction_comparison.png")
+    plt.savefig("prediction_comparison.png", bbox_inches='tight')
     plt.show()
     print("Hình ảnh đã được lưu tại: prediction_comparison.png")
