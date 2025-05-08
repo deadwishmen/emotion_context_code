@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 from transformers import BertConfig, BertLMHeadModel, BertModel
-from infonce import SupervisedInfoNCE, InfoNCE
 import torch.nn.functional as F
 
 class Qformer(nn.Module):
