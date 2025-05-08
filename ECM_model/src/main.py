@@ -8,13 +8,39 @@ from dataset import get_data_loaders
 from train import train
 from test import test_disc, test_cont
 import os
+import subprocess
+
+def download_places365_weights(store_path="./places", file_path="./places/resnet50_places365.pth.tar"):
+    """
+    Kiểm tra và tải trọng số ResNet-50 Places365 nếu chưa tồn tại.
+    Giải nén tệp .pth.tar để lấy tệp .pth.
+    Trả về đường dẫn đến tệp .pth.
+    """
+    if not os.path.exists(store_path):
+        os.makedirs(store_path)
+    
+    if not os.path.exists(file_path):
+        print(f"Downloading ResNet-50 Places365 weights to {file_path}")
+        subprocess.run([
+            "wget", 
+            "http://places2.csail.mit.edu/models_places365/resnet50_places365.pth.tar", 
+            "-O", file_path
+        ], check=True)
+    
+    # Giải nén tệp tar để lấy .pth
+    pth_file = file_path.replace(".pth.tar", ".pth")
+    if not os.path.exists(pth_file):
+        print(f"Extracting {file_path}")
+        subprocess.run(["tar", "-xvf", file_path, "-C", store_path], check=True)
+    
+    return pth_file
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Multi-Branch Network for Imagery Emotion Prediction")
     parser.add_argument('--context-backbone', type=str, default='resnet50_places365',
                         choices=['resnet50_places365', 'resnet18_imagenet', 'resnet50_imagenet'],
                         help='Backbone for context branch')
-    parser.add_argument('--context-weights', type=str, default='/path/to/places365/resnet50.pth',
+    parser.add_argument('--context-weights', type=str, default='./places/resnet50_places365.pth',
                         help='Path to context backbone weights')
     parser.add_argument('--body-backbone', type=str, default='swint_emotic',
                         choices=['resnet18_imagenet', 'resnet50_imagenet', 'resnet50_emotic', 'swint_imagenet', 'swint_emotic'],
@@ -50,6 +76,10 @@ def parse_args():
 
 def main():
     args = parse_args()
+
+    # Tự động tải trọng số Places365 nếu cần
+    if args.context_backbone == "resnet50_places365" and not os.path.exists(args.context_weights):
+        args.context_weights = download_places365_weights()
 
     # Configuration dictionary based on parsed arguments
     config = {

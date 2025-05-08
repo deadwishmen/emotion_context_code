@@ -37,8 +37,14 @@ def load_context_backbone(backbone_type, weights_path=None):
     global num_context_features
     if backbone_type == "resnet50_places365":
         model_context = models.resnet50(weights=None)
-        checkpoint = torch.load(weights_path)
-        model_context.load_state_dict(checkpoint['state_dict'])
+        if weights_path:
+            checkpoint = torch.load(weights_path, map_location='cpu')
+            state_dict = checkpoint['state_dict'] if 'state_dict' in checkpoint else checkpoint
+            # Loại bỏ tiền tố 'module.' nếu cần
+            state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
+            model_context.load_state_dict(state_dict)
+        else:
+            raise ValueError("Path to Places365 weights is required for resnet50_places365")
         num_context_features = list(model_context.children())[-1].in_features
     elif backbone_type == "resnet18_imagenet":
         model_context = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
