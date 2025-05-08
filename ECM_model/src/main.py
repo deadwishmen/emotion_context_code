@@ -8,30 +8,57 @@ from dataset import get_data_loaders
 from train import train
 from test import test_disc, test_cont
 import os
+import requests
+import tarfile
 import subprocess
 
 def download_places365_weights(store_path="./places", file_path="./places/resnet50_places365.pth.tar"):
     """
     Kiểm tra và tải trọng số ResNet-50 Places365 nếu chưa tồn tại.
-    Giải nén tệp .pth.tar để lấy tệp .pth.
+    Xử lý cả trường hợp tệp là .tar hoặc .pth trực tiếp.
     Trả về đường dẫn đến tệp .pth.
     """
     if not os.path.exists(store_path):
         os.makedirs(store_path)
     
+    # Tệp đích cuối cùng là .pth
+    pth_file = file_path.replace(".pth.tar", ".pth")
+    
+    # Nếu tệp .pth đã tồn tại, trả về ngay
+    if os.path.exists(pth_file):
+        return pth_file
+    
+    # Tải tệp nếu chưa tồn tại
     if not os.path.exists(file_path):
         print(f"Downloading ResNet-50 Places365 weights to {file_path}")
-        subprocess.run([
-            "wget", 
-            "http://places2.csail.mit.edu/models_places365/resnet50_places365.pth.tar", 
-            "-O", file_path
-        ], check=True)
+        url = "http://places2.csail.mit.edu/models_places365/resnet50_places365.pth.tar"
+        try:
+            response = requests.get(url, stream=True)
+            if response.status_code == 200:
+                with open(file_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+            else:
+                raise Exception(f"Failed to download weights from {url}. Status code: {response.status_code}")
+        except Exception as e:
+            raise Exception(f"Error downloading weights: {str(e)}")
     
-    # Giải nén tệp tar để lấy .pth
-    pth_file = file_path.replace(".pth.tar", ".pth")
+    # Kiểm tra xem tệp có phải là .tar và giải nén
+    try:
+        with tarfile.open(file_path, 'r:*') as tar:
+            tar.extractall(store_path)
+            print(f"Extracted {file_path} to {store_path}")
+    except tarfile.ReadError:
+        print(f"File {file_path} is not a valid tar archive. Assuming it is a .pth file.")
+        # Nếu không phải .tar, giả sử là .pth và đổi tên
+        os.rename(file_path, pth_file)
+    except Exception as e:
+        raise Exception(f"Error extracting {file_path}: {str(e)}")
+    
+    # Kiểm tra xem tệp .pth đã được tạo chưa
     if not os.path.exists(pth_file):
-        print(f"Extracting {file_path}")
-        subprocess.run(["tar", "-xvf", file_path, "-C", store_path], check=True)
+        raise FileNotFoundError(f"Could not find {pth_file} after extraction")
     
     return pth_file
 
