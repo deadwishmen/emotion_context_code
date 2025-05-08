@@ -71,7 +71,6 @@ class FusionNet(nn.Module):
         self.num_face_features = num_face_features
         self.isVADPrediction = isVADPrediction
 
-        self.fc = nn.Linear(512, 256)
         self.fc_context = nn.Linear(num_context_features, 512)
         self.fc_body = nn.Linear(num_body_features, 512)
         self.fc_face = nn.Linear(num_face_features, 512)

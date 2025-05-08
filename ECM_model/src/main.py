@@ -9,7 +9,6 @@ from train import train
 from test import test_disc, test_cont
 import os
 
-
 def parse_args():
     parser = argparse.ArgumentParser(description="Multi-Branch Network for Imagery Emotion Prediction")
     parser.add_argument('--context-backbone', type=str, default='resnet50_places365',
