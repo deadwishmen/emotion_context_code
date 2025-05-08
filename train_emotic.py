@@ -145,7 +145,7 @@ def train(args):
     loss_map = {
         "L2": DiscreteLoss('dynamic', device),
         "BCE": BCEWithLogitsLoss('dynamic', device),
-        "FocalLoss": FocalLoss(gamma=2.0, alpha=None, weight_type='mean', device=device)
+        "FocalLoss": FocalLoss(gamma=2.0, alpha=0.25, reduction='mean')
     }
     disc_loss = loss_map[args.loss]
 
