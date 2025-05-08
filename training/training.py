@@ -6,11 +6,10 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from utils.metrics import test_scikit_ap
-from infonce import InfoNCE
+
 import matplotlib.pyplot as plt
 
-# Initialize InfoNCE loss
-loss_fn = InfoNCE(temperature=0.07)
+
 
 
 def train_disc(
