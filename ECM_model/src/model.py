@@ -36,7 +36,10 @@ def load_body_backbone(backbone_type, weights_path=None):
 def load_context_backbone(backbone_type, weights_path=None):
     global num_context_features
     if backbone_type == "resnet50_places365":
+        # Khởi tạo ResNet-50 với số lớp đầu ra là 365 (phù hợp với Places365)
         model_context = models.resnet50(weights=None)
+        # Thay thế lớp fc để có 365 đầu ra
+        model_context.fc = nn.Linear(model_context.fc.in_features, 365)
         if weights_path:
             checkpoint = torch.load(weights_path, map_location='cpu')
             state_dict = checkpoint['state_dict'] if 'state_dict' in checkpoint else checkpoint
