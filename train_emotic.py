@@ -10,7 +10,7 @@ from model.swin_transformer import swin_v2_t, swin_v2_s, swin_v2_b
 from model.vit import vit_b_16
 from model.fusion import FusionModel, FusionConcatModel, TransformerFusionModel, DualPathAttentionFusion, QFormer
 from dataset.data_loader import load_data, set_normalization_and_transforms
-from utils.losses import DiscreteLoss, CrossEtropyLoss, BCEWithLogitsLoss, FocalLoss
+from utils.losses import DiscreteLoss, BCEWithLogitsLoss, FocalLoss
 from training.training import train_disc
 import matplotlib.pyplot as plt
 import os
@@ -145,7 +145,6 @@ def train(args):
     loss_map = {
         "L2": DiscreteLoss('dynamic', device),
         "BCE": BCEWithLogitsLoss('dynamic', device),
-        "CrossEntropy": CrossEtropyLoss('dynamic', device),
         "FocalLoss": FocalLoss(gamma=2.0, alpha=None, weight_type='mean', device=device)
     }
     disc_loss = loss_map[args.loss]
