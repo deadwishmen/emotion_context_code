@@ -131,56 +131,18 @@ class CrossEtropyLoss(nn.Module):
 
 
 class FocalLoss(nn.Module):
-    '''Focal Loss for multi-label classification'''
-    def __init__(self, gamma=2.0, alpha=None, weight_type='mean', device=torch.device('cpu')):
-        super(FocalLoss, self).__init__()
+    def __init__(self, alpha=0.25, gamma=2.0, reduction='mean'):
+        super().__init__()
+        self.alpha = alpha
         self.gamma = gamma
-        self.weight_type = weight_type
-        self.device = device
+        self.reduction = reduction
 
-        # Khởi tạo trọng số alpha (nếu có)
-        if alpha is not None:
-            self.alpha = torch.FloatTensor(alpha).unsqueeze(0).to(self.device)
-        else:
-            self.alpha = None  # Không dùng alpha nếu None
-        
-        # Thiết lập trọng số theo cách của DiscreteLoss
-        if self.weight_type == 'mean':
-            self.weights = torch.ones((1, 26)) / 26.0
-        elif self.weight_type == 'static':
-            self.weights = torch.FloatTensor([
-                0.1435, 0.1870, 0.1692, 0.1165, 0.1949, 0.1204, 0.1728, 0.1372, 0.1620,
-                0.1540, 0.1987, 0.1057, 0.1482, 0.1192, 0.1590, 0.1929, 0.1158, 0.1907,
-                0.1345, 0.1307, 0.1665, 0.1698, 0.1797, 0.1657, 0.1520, 0.1537
-            ]).unsqueeze(0)
-
-        self.weights = self.weights.to(self.device)
-
-    def forward(self, pred, target):
-        # Dùng dynamic weights nếu cần
-        if self.weight_type == 'dynamic':
-            self.weights = self.prepare_dynamic_weights(target).to(self.device)
-
-        # Chuyển đổi dự đoán thành xác suất
-        pred = torch.sigmoid(pred)  # Vì đây là multi-label classification
-        
-        # Tính Focal Loss
-        pt = (pred * target) + ((1 - pred) * (1 - target))  # p_t = p nếu y=1, 1-p nếu y=0
-        focal_weight = (1 - pt) ** self.gamma  # (1 - p_t)^gamma
-
-        # Áp dụng trọng số alpha nếu có
-        if self.alpha is not None:
-            focal_weight = self.alpha * focal_weight
-        
-        # Tính Loss
-        loss = - (target * torch.log(pred + 1e-8) + (1 - target) * torch.log(1 - pred + 1e-8))
-        loss = loss * focal_weight * self.weights
-
-        return loss.sum()
-
-    def prepare_dynamic_weights(self, target):
-        target_stats = torch.sum(target, dim=0).float().unsqueeze(dim=0).cpu()
-        weights = torch.zeros((1, 26))
-        weights[target_stats != 0] = 1.0 / torch.log(target_stats[target_stats != 0].data + 1.2)
-        weights[target_stats == 0] = 0.0001
-        return weights
+    def forward(self, inputs, targets):
+        BCE_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
+        pt = torch.exp(-BCE_loss)
+        focal_loss = self.alpha * (1 - pt) ** self.gamma * BCE_loss
+        if self.reduction == 'mean':
+            return focal_loss.mean()
+        elif self.reduction == 'sum':
+            return focal_loss.sum()
+        return focal_loss

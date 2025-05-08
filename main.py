@@ -188,35 +188,35 @@ def train(pars):
 
 
 
-  # train_loss, val_loss, train_mae, val_mae = train_disc(epochs, 
-  #           model_path, 
-  #           opt, scheduler, 
-  #           [model_context, model_body, model_face, model_text, fusion_model], 
-  #           disc_loss, 
-  #           cat_loss_param=1.0, 
-  #           cont_loss_param=0.0, 
-  #           train_length = train_length, 
-  #           val_length = val_length,
-  #           train_loader = train_loader,
-  #           val_loader = val_loader,
-  #           device = device,
-  #           conbine = conbine,
-  #           choices_model_context = choices_model_context
-  #           )
+  train_loss, val_loss, train_mae, val_mae = train_disc(epochs, 
+            model_path, 
+            opt, scheduler, 
+            [model_context, model_body, model_face, model_text, fusion_model], 
+            disc_loss, 
+            cat_loss_param=1.0, 
+            cont_loss_param=0.0, 
+            train_length = train_length, 
+            val_length = val_length,
+            train_loader = train_loader,
+            val_loader = val_loader,
+            device = device,
+            conbine = conbine,
+            choices_model_context = choices_model_context
+            )
 
-  # f, [[ax1, ax2], [ax3, ax4]] = plt.subplots(2, 2, figsize = (15, 10))
-  # f.suptitle('Multi-Branch Network for Imagery Emotion Prediction')
-  # ax1.plot(range(0,len(train_loss)),train_loss, color='Blue')
-  # ax2.plot(range(0,len(val_loss)),val_loss, color='Red')
-  # ax1.legend(['train loss'])
-  # ax2.legend(['val loss'])
+  f, [[ax1, ax2], [ax3, ax4]] = plt.subplots(2, 2, figsize = (15, 10))
+  f.suptitle('Multi-Branch Network for Imagery Emotion Prediction')
+  ax1.plot(range(0,len(train_loss)),train_loss, color='Blue')
+  ax2.plot(range(0,len(val_loss)),val_loss, color='Red')
+  ax1.legend(['train loss'])
+  ax2.legend(['val loss'])
 
 
 
-  # ax3.plot(range(0,len(train_mae)),train_mae, color='Blue')
-  # ax4.plot(range(0,len(val_mae)),val_mae, color='Red')
-  # ax3.legend(['train mAP'])
-  # ax4.legend(['val mAP'])
+  ax3.plot(range(0,len(train_mae)),train_mae, color='Blue')
+  ax4.plot(range(0,len(val_mae)),val_mae, color='Red')
+  ax3.legend(['train mAP'])
+  ax4.legend(['val mAP'])
 
 
   model_context = torch.load(os.path.join(model_path, 'model_context.pth'), weights_only=False)
