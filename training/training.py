@@ -6,10 +6,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from utils.metrics import test_scikit_ap
-
 import matplotlib.pyplot as plt
-
-
 
 
 def train_disc(
@@ -127,8 +124,8 @@ def train_disc(
 
             # Store predictions and labels
             batch_size = pred_cat.shape[0]
-            train_cat_preds[indx : indx + batch_size, :] = pred_cat.cpu().numpy()
-            train_cat_labels[indx : indx + batch_size, :] = labels_cat.cpu().numpy()
+            train_cat_preds[indx : indx + batch_size, :] = pred_cat.detach().cpu().numpy()
+            train_cat_labels[indx : indx + batch_size, :] = labels_cat.detach().cpu().numpy()
             indx += batch_size
 
         # Log training metrics
@@ -182,8 +179,8 @@ def train_disc(
 
                 # Store predictions and labels
                 batch_size = pred_cat.shape[0]
-                val_cat_preds[indx : indx + batch_size, :] = pred_cat.cpu().numpy()
-                val_cat_labels[indx : indx + batch_size, :] = labels_cat.cpu().numpy()
+                val_cat_preds[indx : indx + batch_size, :] = pred_cat.detach().cpu().numpy()
+                val_cat_labels[indx : indx + batch_size, :] = labels_cat.detach().cpu().numpy()
                 indx += batch_size
 
         # Log validation metrics
