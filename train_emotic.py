@@ -164,7 +164,7 @@ def train(args):
         train_loader=train_loader,
         val_loader=val_loader,
         device=device,
-        conbine=args.fusion_method,
+        combine=args.fusion_method,
         choices_model_context=args.model_context
     )
 
