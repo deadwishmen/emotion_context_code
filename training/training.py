@@ -84,9 +84,7 @@ def train_disc(
         indx = 0
 
         # Training loop
-        for images_context, images_body, images_face, tokenizer_text, labels_cat, labels_cont in tqdm(
-            train_loader, desc="Training Progress", leave=True
-        ):
+        for images_context, images_body, images_face, tokenizer_text, labels_cat, labels_cont in train_loader:
             # Move data to device
             images_context = images_context.to(device)
             images_body = images_body.to(device)
