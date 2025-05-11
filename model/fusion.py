@@ -178,8 +178,8 @@ class FusionConcatModel(nn.Module):
         self.attention_fuse = GaussianBlock(norm_axes, num_heads, num_densities, num_layers, padding_value, eps)
 
         # Output layers
-        self.fc2 = nn.Linear(256, 26)
-        self.bn1 = nn.BatchNorm1d(256)
+        self.fc2 = nn.Linear(1024, 26)
+        self.bn1 = nn.BatchNorm1d(1024)
         self.d1 = nn.Dropout(p=0.5)
         self.relu = nn.ReLU()
 
@@ -200,7 +200,7 @@ class FusionConcatModel(nn.Module):
         fuse_features = torch.cat((context_features, body_features, face_features, text_features), 1)
         # Apply DensityBlock to fused features
         fuse_out = self.attention_fuse(fuse_features)
-
+        print(fuse_out.shape)
 
 
         # Feed-forward through the rest of the network
