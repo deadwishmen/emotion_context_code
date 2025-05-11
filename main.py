@@ -198,7 +198,6 @@ def train(pars):
                     train_loader = train_loader,
                     val_loader = val_loader,
                     device = device,
-                    conbine = conbine,
                     choices_model_context = choices_model_context
                     )
 
