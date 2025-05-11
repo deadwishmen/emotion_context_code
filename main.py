@@ -186,53 +186,53 @@ def train(pars):
     disc_loss = FocalLoss(gamma=2.0, alpha=None, weight_type='mean', device=device)
 
 
-    if not args.predict:
-        train_loss, val_loss, train_mae, val_mae = train_disc(epochs, 
-                    model_path, 
-                    opt, scheduler, 
-                    [model_context, model_body, model_face, model_text, fusion_model], 
-                    disc_loss, 
-                    cat_loss_param=1.0, 
-                    cont_loss_param=0.0, 
-                    train_length = train_length, 
-                    val_length = val_length,
-                    train_loader = train_loader,
-                    val_loader = val_loader,
-                    device = device,
-                    conbine = conbine,
-                    choices_model_context = choices_model_context
-                    )
 
-        f, [[ax1, ax2], [ax3, ax4]] = plt.subplots(2, 2, figsize = (15, 10))
-        f.suptitle('Multi-Branch Network for Imagery Emotion Prediction')
-        ax1.plot(range(0,len(train_loss)),train_loss, color='Blue')
-        ax2.plot(range(0,len(val_loss)),val_loss, color='Red')
-        ax1.legend(['train loss'])
-        ax2.legend(['val loss'])
+    train_loss, val_loss, train_mae, val_mae = train_disc(epochs, 
+                model_path, 
+                opt, scheduler, 
+                [model_context, model_body, model_face, model_text, fusion_model], 
+                disc_loss, 
+                cat_loss_param=1.0, 
+                cont_loss_param=0.0, 
+                train_length = train_length, 
+                val_length = val_length,
+                train_loader = train_loader,
+                val_loader = val_loader,
+                device = device,
+                conbine = conbine,
+                choices_model_context = choices_model_context
+                )
 
-
-
-        ax3.plot(range(0,len(train_mae)),train_mae, color='Blue')
-        ax4.plot(range(0,len(val_mae)),val_mae, color='Red')
-        ax3.legend(['train mAP'])
-        ax4.legend(['val mAP'])
+    f, [[ax1, ax2], [ax3, ax4]] = plt.subplots(2, 2, figsize = (15, 10))
+    f.suptitle('Multi-Branch Network for Imagery Emotion Prediction')
+    ax1.plot(range(0,len(train_loss)),train_loss, color='Blue')
+    ax2.plot(range(0,len(val_loss)),val_loss, color='Red')
+    ax1.legend(['train loss'])
+    ax2.legend(['val loss'])
 
 
-        model_context = torch.load(os.path.join(model_path, 'model_context.pth'), weights_only=False)
-        model_body = torch.load(os.path.join(model_path, 'model_body.pth'), weights_only=False)
-        model_face = torch.load(os.path.join(model_path, 'model_face.pth'), weights_only=False)
-        fusion_model = torch.load(os.path.join(model_path, 'model_fusion.pth'), weights_only=False)
 
-        model_context.eval()
-        model_body.eval()
-        model_face.eval()
-        fusion_model.eval()
+    ax3.plot(range(0,len(train_mae)),train_mae, color='Blue')
+    ax4.plot(range(0,len(val_mae)),val_mae, color='Red')
+    ax3.legend(['train mAP'])
+    ax4.legend(['val mAP'])
 
-        print ('completed cell')
 
-        test_map = test_disc([model_context, model_body, model_face, model_text, fusion_model], device, val_loader, val_length, conbine = conbine, xai = xai)
-        print ('testing mAP=%.4f' %(test_map))
-    else:
+    model_context = torch.load(os.path.join(model_path, 'model_context.pth'), weights_only=False)
+    model_body = torch.load(os.path.join(model_path, 'model_body.pth'), weights_only=False)
+    model_face = torch.load(os.path.join(model_path, 'model_face.pth'), weights_only=False)
+    fusion_model = torch.load(os.path.join(model_path, 'model_fusion.pth'), weights_only=False)
+
+    model_context.eval()
+    model_body.eval()
+    model_face.eval()
+    fusion_model.eval()
+
+    print ('completed cell')
+
+    test_map = test_disc([model_context, model_body, model_face, model_text, fusion_model], device, val_loader, val_length, conbine = conbine, xai = xai)
+    print ('testing mAP=%.4f' %(test_map))
+    if pars.predict:
 
         # Đọc file CSV
         path_dataset = "/kaggle/input/emotion-torch/context_dataset/context_dataset/test.csv"
