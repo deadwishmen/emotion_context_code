@@ -5,7 +5,7 @@ from model.transformer import CrossAttention
 
 from model.qformer import Qformer
 from model.FAN import FANLayer
-
+from density_adaptive_attention import DensityBlock
 
 
 
@@ -141,6 +141,15 @@ class FusionModel(nn.Module):
 
         return cat_out
 
+import torch
+import torch.nn as nn
+
+import torch
+import torch.nn as nn
+
+# Placeholder DensityBlock implementation
+
+
 class FusionConcatModel(nn.Module):
     def __init__(self, num_context_features, num_body_features, num_face_features, num_text_features):
         super(FusionConcatModel, self).__init__()
@@ -149,13 +158,25 @@ class FusionConcatModel(nn.Module):
         self.num_face_features = num_face_features
         self.num_text_features = num_text_features
 
+        # DensityBlock configuration
+        norm_axes = [1, 1, 1]
+        num_heads = [4, 4, 4]
+        num_densities = [5, 5, 5]
+        num_layers = 3
+        padding_value = None
+        eps = 1e-8
+
+        # Linear layers for feature transformation
         self.fc_context = nn.Linear(num_context_features, 256)
         self.fc_body = nn.Linear(num_body_features, 256)
         self.fc_face = nn.Linear(num_face_features, 256)
         self.fc_text = nn.Linear(num_text_features, 256)
+    
+        # DensityBlock for text features and fused features
+        self.attention_text = DensityBlock(norm_axes, num_heads, num_densities, num_layers, padding_value, eps)
+        self.attention_fuse = DensityBlock(norm_axes, num_heads, num_densities, num_layers, padding_value, eps)
 
-        self.fan_text = FANLayer(num_text_features, 256)
-        self.fan1 = FANLayer(256, 256)
+        # Output layers
         self.fc2 = nn.Linear(256, 26)
         self.bn1 = nn.BatchNorm1d(256)
         self.d1 = nn.Dropout(p=0.5)
@@ -168,18 +189,18 @@ class FusionConcatModel(nn.Module):
         face_features = x_face.view(-1, self.num_face_features)
         text_features = x_text.view(-1, self.num_text_features)
 
+        # Transform features to 256 dimensions
         context_features = self.fc_context(context_features)
         body_features = self.fc_body(body_features)
         face_features = self.fc_face(face_features)
-
-        
-        text_features = self.fan_text(text_features)
+        text_features = self.fc_text(text_features)
 
         # Concatenate features
-        #fuse_features = torch.cat((context_features, body_features, face_features, text_features), 1)
-        # fuse_features = torch.cat((context_features, body_features,face_features , text_features), 1)
-        
-        fuse_out = self.fan1(text_features)
+        fuse_features = torch.cat((context_features, body_features, face_features, text_features), 1)
+        # Apply DensityBlock to fused features
+        fuse_out = self.attention_text(fuse_features)
+
+
 
         # Feed-forward through the rest of the network
         fuse_out = self.bn1(fuse_out)
@@ -188,6 +209,14 @@ class FusionConcatModel(nn.Module):
         cat_out = self.fc2(fuse_out)
 
         return cat_out
+
+
+
+
+
+
+
+
 
 #######################Cross Attention Model######################
 
