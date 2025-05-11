@@ -199,7 +199,7 @@ class FusionConcatModel(nn.Module):
         # Concatenate features
         fuse_features = torch.cat((context_features, body_features, face_features, text_features), 1)
         # Apply DensityBlock to fused features
-        fuse_out = self.attention_text(fuse_features)
+        fuse_out = self.attention_fuse(fuse_features)
 
 
 
