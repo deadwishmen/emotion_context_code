@@ -5,7 +5,8 @@ from model.transformer import CrossAttention
 
 from model.qformer import Qformer
 from model.FAN import FANLayer
-from density_adaptive_attention import DensityBlock
+from gaussian_adaptive_attention import GaussianBlock
+
 
 
 
@@ -173,8 +174,8 @@ class FusionConcatModel(nn.Module):
         self.fc_text = nn.Linear(num_text_features, 256)
     
         # DensityBlock for text features and fused features
-        self.attention_text = DensityBlock(norm_axes, num_heads, num_densities, num_layers, padding_value, eps)
-        self.attention_fuse = DensityBlock(norm_axes, num_heads, num_densities, num_layers, padding_value, eps)
+        
+        self.attention_fuse = GaussianBlock(norm_axes, num_heads, num_densities, num_layers, padding_value, eps)
 
         # Output layers
         self.fc2 = nn.Linear(256, 26)
