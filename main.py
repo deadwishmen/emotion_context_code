@@ -16,8 +16,8 @@ from model.vit import vit_b_16
 from model.fusion import FusionModel, FusionConcatModel, TransformerFusionModel, DualPathAttentionFusion, QFormer
 from dataset.data_loader import load_data, set_normalization_and_transforms
 from utils.losses import DiscreteLoss, BCEWithLogitsLoss, FocalLoss
-from utils.training import train_disc
-from utils.testing import test_disc
+from training.training import train_disc
+from training.testing import test_disc
 from utils.predict import predict_and_show
 from transformers import CLIPModel
 import os
