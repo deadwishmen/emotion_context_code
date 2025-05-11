@@ -64,144 +64,143 @@ def get_arg():
 
 def train(pars):
 
-  batch_size = args.batch_size
-  data_src = args.path_dataset
-  gamma = args.gamma
-  conbine = args.conbine
-  epochs = args.epochs
-  choices_model_body = args.model_body
-  choices_model_context = args.model_context
-  model_path = args.save_model
-  loss_function = args.loss
-  model_text = args.model_text
-  num_context_features = 768
-  xai = args.xai
-  context_norm, body_norm, face_norm, train_transform, test_transform, face_train_transform, face_test_transform = set_normalization_and_transforms(choices_model_body)
+    batch_size = args.batch_size
+    data_src = args.path_dataset
+    gamma = args.gamma
+    conbine = args.conbine
+    epochs = args.epochs
+    choices_model_body = args.model_body
+    choices_model_context = args.model_context
+    model_path = args.save_model
+    loss_function = args.loss
+    model_text = args.model_text
+    num_context_features = 768
+    xai = args.xai
+    context_norm, body_norm, face_norm, train_transform, test_transform, face_train_transform, face_test_transform = set_normalization_and_transforms(choices_model_body)
 
-  train_loader, val_loader, test_loader, cat2ind, ind2cat, train_length, val_length, test_length = load_data(
-      data_src,
-      batch_size,
-      train_transform,
-      test_transform,
-      face_train_transform,
-      face_test_transform,
-      context_norm,
-      body_norm,
-      face_norm,
-      model_text
-  )
+    train_loader, val_loader, test_loader, cat2ind, ind2cat, train_length, val_length, test_length = load_data(
+        data_src,
+        batch_size,
+        train_transform,
+        test_transform,
+        face_train_transform,
+        face_test_transform,
+        context_norm,
+        body_norm,
+        face_norm,
+        model_text
+    )
 
-  device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-  model_dict = {
-    "swin-t": swin_v2_t,
-    "swin-s": swin_v2_s,
-    "swin-b": swin_v2_b,
-    "vit": vit_b_16
-  }
-  if conbine == "q_former":
-    model_context = vit_b_16(pretrained = True)
-  elif choices_model_context == "resnet": 
-    model_context = resnet50_place365(pretrained = True)
-    print(summary(model_context, (3,224,224), device="cpu"))
-    num_context_features = list(model_context.children())[-1].in_features
-  model_face = cnn_face(pretrained = True)
-  
-  model_body = model_dict.get(choices_model_body, None)
-  if model_body:
-      model_body = model_body(pretrained=True)
-  
-  if model_text == "distilbert":
-    model_text = AutoModel.from_pretrained('distilbert-base-uncased')
-  elif model_text == "bert":
-    model_text = AutoModel.from_pretrained('bert-base-uncased')
-  elif model_text == "roberta":
-    model_text = AutoModel.from_pretrained('roberta-base')
-  elif model_text == "deberta":
-    model_text = AutoModel.from_pretrained('microsoft/deberta-v2-xlarge')
-  print(model_text)
+    model_dict = {
+        "swin-t": swin_v2_t,
+        "swin-s": swin_v2_s,
+        "swin-b": swin_v2_b,
+        "vit": vit_b_16
+    }
+    if conbine == "q_former":
+        model_context = vit_b_16(pretrained = True)
+    elif choices_model_context == "resnet": 
+        model_context = resnet50_place365(pretrained = True)
+        print(summary(model_context, (3,224,224), device="cpu"))
+        num_context_features = list(model_context.children())[-1].in_features
+    model_face = cnn_face(pretrained = True)
+    
+    model_body = model_dict.get(choices_model_body, None)
+    if model_body:
+        model_body = model_body(pretrained=True)
+    
+    if model_text == "distilbert":
+        model_text = AutoModel.from_pretrained('distilbert-base-uncased')
+    elif model_text == "bert":
+        model_text = AutoModel.from_pretrained('bert-base-uncased')
+    elif model_text == "roberta":
+        model_text = AutoModel.from_pretrained('roberta-base')
+    elif model_text == "deberta":
+        model_text = AutoModel.from_pretrained('microsoft/deberta-v2-xlarge')
+    print(model_text)
 
-  print(model_body)
-  
-  
-  last_layer = list(model_body.children())[-1]  # Lấy lớp cuối cùng
+    print(model_body)
+    
+    
+    last_layer = list(model_body.children())[-1]  # Lấy lớp cuối cùng
 
-  # Nếu lớp cuối cùng là Sequential, lấy lớp con cuối cùng trong nó
-  if isinstance(last_layer, torch.nn.Sequential):
-      last_layer = list(last_layer.children())[-1]
+    # Nếu lớp cuối cùng là Sequential, lấy lớp con cuối cùng trong nó
+    if isinstance(last_layer, torch.nn.Sequential):
+        last_layer = list(last_layer.children())[-1]
 
-  # Kiểm tra nếu nó là Linear thì mới lấy in_features
-  if hasattr(last_layer, 'in_features'):
-      num_body_features = last_layer.in_features
-  else:
-      raise ValueError("The last layer has no in_features. Need to recheck the model.")
+    # Kiểm tra nếu nó là Linear thì mới lấy in_features
+    if hasattr(last_layer, 'in_features'):
+        num_body_features = last_layer.in_features
+    else:
+        raise ValueError("The last layer has no in_features. Need to recheck the model.")
 
-  # num_body_features = list(model_body.children())[-1].in_features
-  num_face_features = list(model_face.children())[-3].in_features
-  num_text_features = model_text.config.hidden_size
-  
-  print(num_text_features)
-  print(num_context_features)
-  print(num_body_features)
-  print(num_face_features)
+    # num_body_features = list(model_body.children())[-1].in_features
+    num_face_features = list(model_face.children())[-3].in_features
+    num_text_features = model_text.config.hidden_size
+    
+    print(num_text_features)
+    print(num_context_features)
+    print(num_body_features)
+    print(num_face_features)
 
-  if conbine == "concat":
-    fusion_model = FusionConcatModel(num_context_features, num_body_features, num_face_features, num_text_features)
-  elif conbine == "sum":
-    fusion_model = FusionModel(num_context_features, num_body_features, num_face_features, num_text_features, conbine)
-  elif conbine == "avg":
-    fusion_model = FusionModel(num_context_features, num_body_features, num_face_features, num_text_features, conbine)
-  elif conbine == "transformer":
-    fusion_model = TransformerFusionModel(num_context_features, num_body_features, num_face_features, num_text_features) 
-  elif conbine == "attention":
-    fusion_model = DualPathAttentionFusion(num_context_features, num_body_features, num_face_features, num_text_features)
-  elif conbine == "q_former":
-    fusion_model = QFormer(num_context_features, num_body_features, num_face_features, num_text_features) 
+    if conbine == "concat":
+        fusion_model = FusionConcatModel(num_context_features, num_body_features, num_face_features, num_text_features)
+    elif conbine == "sum":
+        fusion_model = FusionModel(num_context_features, num_body_features, num_face_features, num_text_features, conbine)
+    elif conbine == "avg":
+        fusion_model = FusionModel(num_context_features, num_body_features, num_face_features, num_text_features, conbine)
+    elif conbine == "transformer":
+        fusion_model = TransformerFusionModel(num_context_features, num_body_features, num_face_features, num_text_features) 
+    elif conbine == "attention":
+        fusion_model = DualPathAttentionFusion(num_context_features, num_body_features, num_face_features, num_text_features)
+    elif conbine == "q_former":
+        fusion_model = QFormer(num_context_features, num_body_features, num_face_features, num_text_features) 
 
-  for param in fusion_model.parameters():
-    param.requires_grad = True
-  for param in model_context.parameters():
-    param.requires_grad = False
-  for param in model_body.parameters():
-    param.requires_grad = False
-  for param in model_face.parameters():
-    param.requires_grad = False
-  for param in model_text.parameters():
-    param.requires_grad = False
+    for param in fusion_model.parameters():
+        param.requires_grad = True
+    for param in model_context.parameters():
+        param.requires_grad = False
+    for param in model_body.parameters():
+        param.requires_grad = False
+    for param in model_face.parameters():
+        param.requires_grad = False
+    for param in model_text.parameters():
+        param.requires_grad = False
 
 
-  # parm = (list(fusion_model.parameters()) + list(model_context.parameters()) + \
-  #                 list(model_body.parameters()) + list(model_face.parameters()) + list(model_text.parameters()))
-  parm = (list(fusion_model.parameters()) + list(model_text.parameters()))
+    # parm = (list(fusion_model.parameters()) + list(model_context.parameters()) + \
+    #                 list(model_body.parameters()) + list(model_face.parameters()) + list(model_text.parameters()))
+    parm = (list(fusion_model.parameters()) + list(model_text.parameters()))
 
-  opt = optim.AdamW(parm, 
-                  lr=pars.learning_rate, weight_decay=pars.weight_decay)
+    opt = optim.AdamW(parm, 
+                    lr=pars.learning_rate, weight_decay=pars.weight_decay)
 
-  scheduler = StepLR(opt, step_size=7, gamma=gamma)
-  if loss_function == "L2":
-    disc_loss = DiscreteLoss('dynamic', device)
-  elif loss_function == "BCE":
-    disc_loss = BCEWithLogitsLoss('dynamic', device)
-  elif loss_function == "FocalLoss":
-    disc_loss = FocalLoss(gamma=2.0, alpha=None, weight_type='mean', device=device)
-
+    scheduler = StepLR(opt, step_size=7, gamma=gamma)
+    if loss_function == "L2":
+        disc_loss = DiscreteLoss('dynamic', device)
+    elif loss_function == "BCE":
+        disc_loss = BCEWithLogitsLoss('dynamic', device)
+    elif loss_function == "FocalLoss":
+        disc_loss = FocalLoss(gamma=2.0, alpha=None, weight_type='mean', device=device)
 
 
     train_loss, val_loss, train_mae, val_mae = train_disc(epochs, 
-                model_path, 
-                opt, scheduler, 
-                [model_context, model_body, model_face, model_text, fusion_model], 
-                disc_loss, 
-                cat_loss_param=1.0, 
-                cont_loss_param=0.0, 
-                train_length = train_length, 
-                val_length = val_length,
-                train_loader = train_loader,
-                val_loader = val_loader,
-                device = device,
-                conbine = conbine,
-                choices_model_context = choices_model_context
-                )
+                    model_path, 
+                    opt, scheduler, 
+                    [model_context, model_body, model_face, model_text, fusion_model], 
+                    disc_loss, 
+                    cat_loss_param=1.0, 
+                    cont_loss_param=0.0, 
+                    train_length = train_length, 
+                    val_length = val_length,
+                    train_loader = train_loader,
+                    val_loader = val_loader,
+                    device = device,
+                    conbine = conbine,
+                    choices_model_context = choices_model_context
+                    )
 
     f, [[ax1, ax2], [ax3, ax4]] = plt.subplots(2, 2, figsize = (15, 10))
     f.suptitle('Multi-Branch Network for Imagery Emotion Prediction')
