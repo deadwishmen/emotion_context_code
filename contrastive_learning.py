@@ -5,25 +5,53 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
-from transformers import AutoProcessor, AutoTokenizer, CLIPModel
+from transformers import CLIPModel, CLIPProcessor, CLIPConfig
+from PIL import Image
 from sklearn.metrics import average_precision_score
 import logging
+from tqdm import tqdm  # Thêm tqdm để hiển thị thanh tiến trình
 
 # Thiết lập logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Hàm tải processor và tokenizer
-def load_hf_resources(model_name="openai/clip-vit-base-patch32", cache_dir=None):
+# Hàm tải processor và mô hình từ Hugging Face
+def load_hf_resources(model_name="zer0int/LongCLIP-GmP-ViT-L-14", device="cpu"):
     try:
-        processor = AutoProcessor.from_pretrained(model_name, use_fast=True, local_files_only=os.getenv("TRANSFORMERS_OFFLINE", "0") == "1", cache_dir=cache_dir)
-        tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True, local_files_only=os.getenv("TRANSFORMERS_OFFLINE", "0") == "1", cache_dir=cache_dir)
-        logging.info("Loaded processor and tokenizer successfully.")
-        return processor, tokenizer
+        # Tải cấu hình và điều chỉnh max_position_embeddings thành 248
+        config = CLIPConfig.from_pretrained(model_name)
+        config.text_config.max_position_embeddings = 248
+        # Tải mô hình và processor
+        clip_model = CLIPModel.from_pretrained(model_name, torch_dtype=torch.float16 if device == "cuda" else torch.float32, config=config)
+        clip_processor = CLIPProcessor.from_pretrained(model_name, padding="max_length", max_length=248)
+        clip_model = clip_model.to(device)
+        logging.info("Loaded LongCLIP-GmP-ViT-L-14 model and processor successfully.")
+        return clip_model, clip_processor
     except Exception as e:
-        logging.error(f"Failed to load Hugging Face resources: {e}")
+        logging.error(f"Failed to load LongCLIP-GmP-ViT-L-14 resources: {e}")
         raise
 
-processor, tokenizer = load_hf_resources()
+# Khởi tạo thiết bị và tải mô hình
+device = "cuda" if torch.cuda.is_available() else "cpu"
+clip_model, clip_processor = load_hf_resources(device=device)
+
+# Hàm tokenize text với LongCLIP (hỗ trợ đến 248 token)
+def tokenize_text(path_dataset, max_length=248):
+    try:
+        df = pd.read_csv(path_dataset)
+        if 'Output' not in df.columns:
+            raise ValueError(f"Column 'Output' not found in {path_dataset}")
+        sentences = df['Output'].tolist()
+        tokens = clip_processor.tokenizer(sentences, padding="max_length", truncation=True, max_length=max_length, return_tensors="pt")
+        # Kiểm tra nếu có chuỗi vượt quá 248 token
+        for i, sentence in enumerate(sentences):
+            token_count = len(clip_processor.tokenizer.tokenize(sentence))
+            if token_count > max_length:
+                logging.warning(f"Sentence {i} in {path_dataset} exceeds 248 tokens (found {token_count} tokens), truncated.")
+        tokenized_list = [{key: tokens[key][i] for key in tokens.keys()} for i in range(tokens['input_ids'].size(0))]
+        return tokenized_list
+    except Exception as e:
+        logging.error(f"Error tokenizing text from {path_dataset}: {e}")
+        raise
 
 class BCEWithLogitsLoss(nn.Module):
     def __init__(self, weight_type='mean', device=torch.device('cpu')):
@@ -57,19 +85,6 @@ class BCEWithLogitsLoss(nn.Module):
         weights[target_stats == 0] = 0.0001
         return weights
 
-def tokenize_text(path_dataset):
-    try:
-        df = pd.read_csv(path_dataset)
-        if 'Output' not in df.columns:
-            raise ValueError(f"Column 'Output' not found in {path_dataset}")
-        sentences = df['Output'].tolist()
-        tokens = tokenizer(sentences, padding="max_length", truncation=True, max_length=77, return_tensors="pt")
-        tokenized_list = [{key: tokens[key][i] for key in tokens.keys()} for i in range(tokens['input_ids'].size(0))]
-        return tokenized_list
-    except Exception as e:
-        logging.error(f"Error tokenizing text from {path_dataset}: {e}")
-        raise
-
 class EmoticDataset(Dataset):
     def __init__(self, x_context, x_body, x_text, y_cat, device="cpu"):
         self.x_context = x_context
@@ -87,19 +102,21 @@ class EmoticDataset(Dataset):
             context = self.x_context[index]
             if context.shape[0] == 3:
                 context = context.transpose(1, 2, 0)
-            processed_context = processor(images=context, return_tensors="pt")['pixel_values'][0]
+            processed_context = clip_processor(images=Image.fromarray(context), return_tensors="pt")['pixel_values'][0].to(self.device)
 
             # Xử lý body
             body = self.x_body[index]
             if body.shape[0] == 3:
                 body = body.transpose(1, 2, 0)
-            processed_body = processor(images=body, return_tensors="pt")['pixel_values'][0]
+            processed_body = clip_processor(images=Image.fromarray(body), return_tensors="pt")['pixel_values'][0].to(self.device)
 
             # Xử lý text
             token_text = self.x_text[index]
+            for key in token_text:
+                token_text[key] = token_text[key].to(self.device)
 
             # Nhãn
-            cat_label = torch.tensor(self.y_cat[index], dtype=torch.float32)
+            cat_label = torch.tensor(self.y_cat[index], dtype=torch.float32).to(self.device)
             return processed_context, processed_body, token_text, cat_label
         except Exception as e:
             logging.error(f"Error processing dataset item {index}: {e}")
@@ -131,10 +148,10 @@ def load_data(data_src, batch_size, device):
         val_cat = np.load(os.path.join(data_src, 'val_cat_arr.npy'))
         test_cat = np.load(os.path.join(data_src, 'test_cat_arr.npy'))
 
-        # Tải văn bản
-        train_text = tokenize_text(os.path.join(data_src, 'train.csv'))
-        val_text = tokenize_text(os.path.join(data_src, 'val.csv'))
-        test_text = tokenize_text(os.path.join(data_src, 'test.csv'))
+        # Tải văn bản với LongCLIP-GmP-ViT-L-14 (max_length=248)
+        train_text = tokenize_text(os.path.join(data_src, 'train.csv'), max_length=248)
+        val_text = tokenize_text(os.path.join(data_src, 'val.csv'), max_length=248)
+        test_text = tokenize_text(os.path.join(data_src, 'test.csv'), max_length=248)
 
         # Tạo dataset
         train_dataset = EmoticDataset(train_context, train_body, train_text, train_cat, device=device)
@@ -202,14 +219,15 @@ class BayesianLinear(nn.Module):
         return kl_weight.sum() + kl_bias.sum()
 
 class CLIPEmoticModel(nn.Module):
-    def __init__(self, clip_pretrained="openai/clip-vit-base-patch32", num_cat=26, hidden_dim=512, prior_sigma=1.0):
+    def __init__(self, model_name="zer0int/LongCLIP-GmP-ViT-L-14", num_cat=26, hidden_dim=512, prior_sigma=1.0):
         super(CLIPEmoticModel, self).__init__()
         try:
-            self.clip = CLIPModel.from_pretrained(clip_pretrained, local_files_only=os.getenv("TRANSFORMERS_OFFLINE", "0") == "1")
+            self.clip = CLIPModel.from_pretrained(model_name, torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32)
+            self.clip = self.clip.to("cuda" if torch.cuda.is_available() else "cpu")
         except Exception as e:
-            logging.error(f"Failed to load CLIP model: {e}")
+            logging.error(f"Failed to load LongCLIP-GmP-ViT-L-14 model: {e}")
             raise
-        self.clip_dim = self.clip.config.projection_dim
+        self.clip_dim = 768  # LongCLIP-GmP-ViT-L-14 có projection_dim là 768
         self.context_proj = BayesianLinear(self.clip_dim, hidden_dim, prior_sigma)
         self.body_proj = BayesianLinear(self.clip_dim, hidden_dim, prior_sigma)
         self.text_proj = BayesianLinear(self.clip_dim, hidden_dim, prior_sigma)
@@ -228,13 +246,11 @@ class CLIPEmoticModel(nn.Module):
         nn.init.xavier_uniform_(self.prototypes)
 
     def forward(self, context_images, body_images, text_tokens):
-        # dùng CLIP để lấy đặc trưng ảnh và văn bản
-        # context_images: (batch_size, 3, 224, 224) và body_images: (batch_size, 3, 224, 224)
-        # text_tokens: dict chứa input_ids và attention_mask (batch_size, 77) bị cắt bớt 
+        # Sử dụng LongCLIP-GmP-ViT-L-14 để lấy đặc trưng ảnh và văn bản
         with torch.no_grad():
-            context_features = self.clip.get_image_features(context_images) 
-            body_features = self.clip.get_image_features(body_images)
-            text_features = self.clip.get_text_features(**text_tokens)
+            context_features = self.clip.get_image_features(context_images).to(torch.float32)
+            body_features = self.clip.get_image_features(body_images).to(torch.float32)
+            text_features = self.clip.get_text_features(**text_tokens).to(torch.float32)
         context_emb = self.context_proj(context_features)
         body_emb = self.body_proj(body_features)
         text_emb = self.text_proj(text_features)
@@ -253,7 +269,6 @@ class CLIPEmoticModel(nn.Module):
         return kl
 
 def prototypical_contrastive_loss(embeddings, cat_labels, prototypes, temperature=0.07):
-    # Kết hợp context và body embeddings
     embeddings = F.normalize(embeddings, p=2, dim=1)
     prototypes = F.normalize(prototypes, p=2, dim=1)
     sim_matrix = torch.matmul(embeddings, prototypes.T) / temperature
@@ -285,7 +300,7 @@ def regularization_loss(prototypes, margin=1.0):
 
 def train_model(model, train_loader, val_loader, num_epochs=20, learning_rate=2e-4, device="cuda", alpha=0.9):
     model = model.to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate) # Sử dụng AdamW
+    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
     cat_loss_fn = BCEWithLogitsLoss(weight_type='dynamic', device=device)
 
     lambda_proto = 0.1
@@ -295,7 +310,8 @@ def train_model(model, train_loader, val_loader, num_epochs=20, learning_rate=2e
 
     best_val_map = 0.0
 
-    for epoch in range(num_epochs):
+    # Thêm tqdm cho vòng lặp epoch
+    for epoch in tqdm(range(num_epochs), desc="Training Epochs", position=0):
         model.train()
         train_loss = 0.0
         train_cls_loss = 0.0
@@ -303,6 +319,7 @@ def train_model(model, train_loader, val_loader, num_epochs=20, learning_rate=2e
         train_reg_loss = 0.0
         train_kl_loss = 0.0
 
+        # Thêm tqdm cho vòng lặp batch trong giai đoạn huấn luyện
         for batch_idx, (context_images, body_images, text_tokens, cat_labels) in enumerate(train_loader):
             context_images = context_images.to(device)
             body_images = body_images.to(device)
@@ -313,18 +330,16 @@ def train_model(model, train_loader, val_loader, num_epochs=20, learning_rate=2e
 
             context_emb, body_emb, text_emb, cat_pred, prototypes = model(context_images, body_images, text_tokens)
 
-            # Update prototypes with EMA
             with torch.no_grad():
                 for j in range(model.num_cat):
                     mask = cat_labels[:, j] == 1
                     if mask.sum() > 0:
-                        # Kết hợp context và body embeddings
                         mean_emb = (context_emb[mask] + body_emb[mask]).mean(dim=0) / 2
                         model.prototypes[j] = alpha * model.prototypes[j] + (1 - alpha) * mean_emb
                         model.prototypes[j] = F.normalize(model.prototypes[j], p=2, dim=0)
 
             cls_loss = cat_loss_fn(cat_pred, cat_labels)
-            # Sử dụng cả context và body trong contrastive loss
+
             proto_loss_context = prototypical_contrastive_loss(context_emb, cat_labels, prototypes, temperature)
             proto_loss_body = prototypical_contrastive_loss(body_emb, cat_labels, prototypes, temperature)
             proto_loss = (proto_loss_context + proto_loss_body) / 2
@@ -347,8 +362,9 @@ def train_model(model, train_loader, val_loader, num_epochs=20, learning_rate=2e
         val_predictions = []
         val_labels = []
 
+        # Thêm tqdm cho vòng lặp batch trong giai đoạn validation
         with torch.no_grad():
-            for context_images, body_images, text_tokens, cat_labels in val_loader:
+            for context_images, body_images, text_tokens, cat_labels in tqdm(val_loader, desc=f"Epoch {epoch+1}/{num_epochs} - Validation", position=1, leave=False, unit='B', unit_scale=True):
                 context_images = context_images.to(device)
                 body_images = body_images.to(device)
                 text_tokens = {k: v.to(device) for k, v in text_tokens.items()}
@@ -395,7 +411,8 @@ def test_model(model, test_loader, device="cuda", num_samples=10):
     all_predictions = []
     all_labels = []
     with torch.no_grad():
-        for context_images, body_images, text_tokens, cat_labels in test_loader:
+        # Thêm tqdm cho vòng lặp batch trong giai đoạn kiểm tra
+        for context_images, body_images, text_tokens, cat_labels in tqdm(test_loader, desc="Testing", position=0, unit='B', unit_scale=True):
             context_images = context_images.to(device)
             body_images = body_images.to(device)
             text_tokens = {k: v.to(device) for k, v in text_tokens.items()}
@@ -430,7 +447,7 @@ if __name__ == "__main__":
         device = "cuda" if torch.cuda.is_available() else "cpu"
         data_path = "/kaggle/input/emotion-torch/context_dataset/context_dataset"
         batch_size = 128
-        num_epochs = 30
+        num_epochs = 15
         logging.info(f"Using device: {device}")
         logging.info(f"Data path: {data_path}")
         train_loader, val_loader, test_loader = load_data(data_path, batch_size, device)

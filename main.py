@@ -228,7 +228,7 @@ def train(pars):
 
     print ('completed cell')
 
-    test_map = test_disc([model_context, model_body, model_face, model_text, fusion_model], device, val_loader, val_length, conbine = conbine, xai = xai)
+    test_map = test_disc([model_context, model_body, model_face, model_text, fusion_model], device, val_loader, val_length, xai = xai)
     print ('testing mAP=%.4f' %(test_map))
     if pars.predict:
 
