@@ -158,6 +158,7 @@ class FusionConcatModel(nn.Module):
         self.num_body_features = num_body_features
         self.num_face_features = num_face_features
         self.num_text_features = num_text_features
+        num_feauters = 256
 
         # DensityBlock configuration
         norm_axes = [1, 1, 1]
@@ -168,18 +169,18 @@ class FusionConcatModel(nn.Module):
         eps = 1e-8
 
         # Linear layers for feature transformation
-        self.fc_context = nn.Linear(num_context_features, 256)
-        self.fc_body = nn.Linear(num_body_features, 256)
-        self.fc_face = nn.Linear(num_face_features, 256)
-        self.fc_text = nn.Linear(num_text_features, 256)
+        self.fc_context = nn.Linear(num_context_features, num_feauters)
+        self.fc_body = nn.Linear(num_body_features, num_feauters)
+        self.fc_face = nn.Linear(num_face_features, num_feauters)
+        self.fc_text = nn.Linear(num_text_features, num_feauters)
     
         # DensityBlock for text features and fused features
         
         self.attention_fuse = GaussianBlock(norm_axes, num_heads, num_densities, num_layers, padding_value, eps)
 
         # Output layers
-        self.fc2 = nn.Linear(1024, 26)
-        self.bn1 = nn.BatchNorm1d(1024)
+        self.fc2 = nn.Linear(num_feauters*3, 26)
+        self.bn1 = nn.BatchNorm1d(num_feauters*3)
         self.d1 = nn.Dropout(p=0.5)
         self.relu = nn.ReLU()
 
