@@ -185,7 +185,7 @@ def train(pars):
     elif loss_function == "FocalLoss":
         disc_loss = FocalLoss(gamma=2.0, alpha=None, weight_type='mean', device=device)
     elif loss_function == "Asymmetric":
-        disc_loss = AsymmetricLoss('dynamic', device)
+        disc_loss = AsymmetricLoss('dynamic', device=device)
 
 
     train_loss, val_loss, train_mae, val_mae = train_disc(epochs, 
