@@ -188,16 +188,14 @@ class FusionConcatModel(nn.Module):
         context_features = x_context.view(-1, self.num_context_features)
         body_features = x_body.view(-1, self.num_body_features)
         face_features = x_face.view(-1, self.num_face_features)
-        text_features = x_text.view(-1, self.num_text_features)
 
         # Transform features to 256 dimensions
         context_features = self.fc_context(context_features)
         body_features = self.fc_body(body_features)
         face_features = self.fc_face(face_features)
-        text_features = self.fc_text(text_features)
 
         # Concatenate features
-        fuse_features = torch.cat((context_features, body_features, face_features, text_features), 1)
+        fuse_features = torch.cat((context_features, body_features, face_features), 1)
         # Apply DensityBlock to fused features
         fuse_out = self.attention_fuse(fuse_features)
 

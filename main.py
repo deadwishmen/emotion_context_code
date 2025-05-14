@@ -15,7 +15,7 @@ from model.swin_transformer import swin_v2_t, swin_v2_s, swin_v2_b
 from model.vit import vit_b_16
 from model.fusion import FusionModel, FusionConcatModel, TransformerFusionModel, DualPathAttentionFusion, QFormer
 from dataset.data_loader import load_data, set_normalization_and_transforms
-from utils.losses import DiscreteLoss, BCEWithLogitsLoss, FocalLoss
+from utils.losses import DiscreteLoss, BCEWithLogitsLoss, FocalLoss, AsymmetricLoss
 from training.training import train_disc
 from training.testing import test_disc
 from utils.predict import predict_and_show
@@ -47,7 +47,7 @@ def get_arg():
   parser.add_argument('--save_model', default='./save_model', type=str)
   parser.add_argument('--batch_size', default=26, type=int)
   parser.add_argument('--epochs', default=25, type=int)
-  parser.add_argument('--loss', default='L2', type=str, choices=['L2', 'BCE', 'CrossEntropy', 'Huber', 'FocalLoss'])
+  parser.add_argument('--loss', default='L2', type=str, choices=['L2', 'BCE', 'CrossEntropy', 'Huber', 'FocalLoss', 'Asymmetric'])
   parser.add_argument('--model_body', default='swin-t', type=str, choices=['swin-t', 'swin-s', 'swin-b', 'swin-l', 'resnet', 'vit'])
   parser.add_argument('--model_context', default='resnet', type=str, choices=['resnet', 'vit'])
   parser.add_argument('--path_dataset', default='/content/drive/MyDrive/DatMinhNe/Dataset/emotic_obj_full', type=str)
@@ -184,6 +184,8 @@ def train(pars):
         disc_loss = BCEWithLogitsLoss('dynamic', device)
     elif loss_function == "FocalLoss":
         disc_loss = FocalLoss(gamma=2.0, alpha=None, weight_type='mean', device=device)
+    elif loss_function == "Asymmetric":
+        disc_loss = AsymmetricLoss('dynamic', device)
 
 
     train_loss, val_loss, train_mae, val_mae = train_disc(epochs, 

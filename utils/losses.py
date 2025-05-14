@@ -35,6 +35,57 @@ class DiscreteLoss(nn.Module):
 
 
 
+class AsymmetricLoss(nn.Module):
+    ''' Class to measure asymmetric loss between categorical emotion predictions and labels. '''
+    def __init__(self, weight_type='mean', gamma_pos=1.0, gamma_neg=1.0, device=torch.device('cpu')):
+        super(AsymmetricLoss, self).__init__()
+        self.weight_type = weight_type
+        self.gamma_pos = gamma_pos  # Tham số điều chỉnh trọng số cho lỗi positive
+        self.gamma_neg = gamma_neg  # Tham số điều chỉnh trọng số cho lỗi negative
+        self.device = device
+        
+        if self.weight_type == 'mean':
+            self.weights = torch.ones((1, 26)) / 26.0
+            self.weights = self.weights.to(self.device)
+        elif self.weight_type == 'static':
+            self.weights = torch.FloatTensor([
+                0.1435, 0.1870, 0.1692, 0.1165, 0.1949, 0.1204, 0.1728, 0.1372, 0.1620,
+                0.1540, 0.1987, 0.1057, 0.1482, 0.1192, 0.1590, 0.1929, 0.1158, 0.1907,
+                0.1345, 0.1307, 0.1665, 0.1698, 0.1797, 0.1657, 0.1520, 0.1537
+            ]).unsqueeze(0)
+            self.weights = self.weights.to(self.device)
+
+    def forward(self, pred, target):
+        if self.weight_type == 'dynamic':
+            self.weights = self.prepare_dynamic_weights(target)
+            self.weights = self.weights.to(self.device)
+        
+        # Tính lỗi (error) giữa dự đoán và nhãn
+        error = pred - target
+        
+        # Áp dụng trọng số bất đối xứng dựa trên dấu của lỗi
+        asymmetric_weights = torch.where(
+            error > 0,  # Lỗi positive (dự đoán cao hơn nhãn)
+            self.weights * (self.gamma_pos + 1.0),  # Tăng trọng số cho lỗi positive
+            self.weights * (self.gamma_neg + 1.0)   # Tăng trọng số cho lỗi negative
+        )
+        
+        # Tính loss với trọng số bất đối xứng
+        loss = ((error ** 2) * asymmetric_weights)
+        return loss.sum()
+
+    def prepare_dynamic_weights(self, target):
+        target_stats = torch.sum(target, dim=0).float().unsqueeze(dim=0).cpu()
+        weights = torch.zeros((1, 26))
+        weights[target_stats != 0] = 1.0 / torch.log(target_stats[target_stats != 0].data + 1.2)
+        weights[target_stats == 0] = 0.0001
+        return weights
+
+
+
+
+
+
 class BCEWithLogitsLoss(nn.Module):
     ''' Class to measure loss between categorical emotion predictions and labels using BCEWithLogitsLoss.'''
     def __init__(self, weight_type='mean', device=torch.device('cpu')):
