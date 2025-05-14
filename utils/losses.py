@@ -36,12 +36,11 @@ class DiscreteLoss(nn.Module):
 
 
 class AsymmetricLoss(nn.Module):
-    ''' Class to measure asymmetric loss between categorical emotion predictions and labels. '''
     def __init__(self, weight_type='mean', gamma_pos=1.0, gamma_neg=1.0, device=torch.device('cpu')):
         super(AsymmetricLoss, self).__init__()
         self.weight_type = weight_type
-        self.gamma_pos = gamma_pos  # Tham số điều chỉnh trọng số cho lỗi positive
-        self.gamma_neg = gamma_neg  # Tham số điều chỉnh trọng số cho lỗi negative
+        self.gamma_pos = float(gamma_pos)  
+        self.gamma_neg = float(gamma_neg) 
         self.device = device
         
         if self.weight_type == 'mean':
