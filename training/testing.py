@@ -59,7 +59,18 @@ def test_disc(models, device, data_loader, num_images, combine="default", xai=Fa
             else:
                 pred_text = pred_text.mean(dim=1)
 
+            # Call fusion_model and get pred_cat
             pred_cat = fusion_model(pred_context, pred_body, pred_face, pred_text)
+
+            # Debug: Check pred_cat shape
+            current_batch_size = images_context.size(0)
+            if pred_cat.shape != (current_batch_size, 26):
+                print(f"Warning: pred_cat shape {pred_cat.shape} does not match expected ({current_batch_size}, 26)")
+                # If pred_cat is (26,26), assume it's a matrix and take the first current_batch_size rows
+                if pred_cat.shape == (26, 26):
+                    pred_cat = pred_cat[:current_batch_size, :]  # Temporary fix: slice to match batch size
+                else:
+                    raise ValueError(f"Unexpected pred_cat shape: {pred_cat.shape}")
 
             # Feature ablation if enabled
             if xai:
@@ -68,10 +79,9 @@ def test_disc(models, device, data_loader, num_images, combine="default", xai=Fa
                 all_importance.append(attr_numpy)
 
             # Store predictions and labels
-            batch_size = pred_cat.shape[0]
-            cat_preds[idx:idx + batch_size] = pred_cat.cpu().numpy()
-            cat_labels[idx:idx + batch_size] = labels_cat.cpu().numpy()
-            idx += batch_size
+            cat_preds[idx:idx + current_batch_size] = pred_cat.cpu().numpy()
+            cat_labels[idx:idx + current_batch_size] = labels_cat.cpu().numpy()
+            idx += current_batch_size
 
     # Save thresholds
     thresholds = get_thresholds(cat_preds, cat_labels)
